@@ -1,4 +1,4 @@
-Header header
+std_msgs/Header header
 geometry_msgs/Point vec_position
 float64 angle
 float64 curvature

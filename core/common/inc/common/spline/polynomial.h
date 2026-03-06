@@ -5,6 +5,8 @@
 #include "common/math/calculations.h"
 #include "common/spline/lookup_table.h"
 
+#include <iostream>
+#include <iomanip>
 #include <assert.h>
 
 namespace common {

@@ -4,15 +4,15 @@
 #include <iostream>
 #include <vector>
 
-#include <ros/ros.h>
+#include "rclcpp/rclcpp.hpp"
 
-#include <geometry_msgs/PoseArray.h>
-#include <geometry_msgs/PoseStamped.h>
-#include <geometry_msgs/PoseWithCovarianceStamped.h>
-#include <sensor_msgs/PointCloud.h>
+#include <geometry_msgs/msg/pose_array.hpp>
+#include <geometry_msgs/msg/pose_stamped.hpp>
+#include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
+#include <sensor_msgs/msg/point_cloud.hpp>
 
-#include "vehicle_msgs/ControlSignal.h"
-#include "vehicle_msgs/decoder.h"
+#include "vehicle_msgs/msg/control_signal.hpp"
+#include "decoder.h"
 
 #include "phy_simulator/basics.h"
 #include "phy_simulator/phy_simulator.h"
@@ -21,14 +21,16 @@
 
 using namespace phy_simulator;
 
-DECLARE_BACKWARD;
+// TODO： @zhouhao 后续考虑增加
+// DECLARE_BACKWARD;
 const double simulation_rate = 500.0;
 const double gt_msg_rate = 100.0;
 const double gt_static_msg_rate = 10.0;
 const double visualization_msg_rate = 20.0;
 
 common::VehicleControlSignalSet _signal_set;
-std::vector<ros::Subscriber> _ros_sub;
+std::vector<rclcpp::Subscription<vehicle_msgs::msg::ControlSignal>::SharedPtr>
+    _ros_sub;
 
 Vec3f initial_state(0, 0, 0);
 bool flag_rcv_initial_state = false;
@@ -36,42 +38,48 @@ bool flag_rcv_initial_state = false;
 Vec3f goal_state(0, 0, 0);
 bool flag_rcv_goal_state = false;
 
-void CtrlSignalCallback(const vehicle_msgs::ControlSignal::ConstPtr& msg,
-                        int index) {
+void CtrlSignalCallback(const vehicle_msgs::msg::ControlSignal::SharedPtr msg,
+                        int index,
+                        common::VehicleControlSignalSet* signal_set) {
   common::VehicleControlSignal ctrl;
   vehicle_msgs::Decoder::GetControlSignalFromRosControlSignal(*msg, &ctrl);
-  _signal_set.signal_set[index] = ctrl;
+  signal_set->signal_set[index] = ctrl;
 }
 
 void InitialPoseCallback(
-    const geometry_msgs::PoseWithCovarianceStamped::ConstPtr& msg) {
+    const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg) {
   common::VisualizationUtil::Get3DofStateFromRosPose(msg->pose.pose,
                                                      &initial_state);
   flag_rcv_initial_state = true;
 }
 
-void NavGoalCallback(const geometry_msgs::PoseStamped::ConstPtr& msg) {
+void NavGoalCallback(const geometry_msgs::msg::PoseStamped::SharedPtr msg) {
   common::VisualizationUtil::Get3DofStateFromRosPose(msg->pose, &goal_state);
   flag_rcv_goal_state = true;
 }
 
 int main(int argc, char** argv) {
-  ros::init(argc, argv, "~");
-  ros::NodeHandle nh("~");
+  rclcpp::init(argc, argv);
+  auto nh = std::make_shared<rclcpp::Node>("phy_simulator_planning_node");
 
   std::string vehicle_info_path;
-  if (!nh.getParam("vehicle_info_path", vehicle_info_path)) {
-    ROS_ERROR("Failed to get param %s", vehicle_info_path.c_str());
+  nh->declare_parameter<std::string>("vehicle_info_path", "");
+  nh->declare_parameter<std::string>("map_path", "");
+  nh->declare_parameter<std::string>("lane_net_path", "");
+  if (!nh->get_parameter("vehicle_info_path", vehicle_info_path)) {
+    RCLCPP_ERROR(nh->get_logger(), "Failed to get param %s",
+                 vehicle_info_path.c_str());
     assert(false);
   }
   std::string map_path;
-  if (!nh.getParam("map_path", map_path)) {
-    ROS_ERROR("Failed to get param %s", map_path.c_str());
+  if (!nh->get_parameter("map_path", map_path)) {
+    RCLCPP_ERROR(nh->get_logger(), "Failed to get param %s", map_path.c_str());
     assert(false);
   }
   std::string lane_net_path;
-  if (!nh.getParam("lane_net_path", lane_net_path)) {
-    ROS_ERROR("Failed to get param %s", lane_net_path.c_str());
+  if (!nh->get_parameter("lane_net_path", lane_net_path)) {
+    RCLCPP_ERROR(nh->get_logger(), "Failed to get param %s",
+                 lane_net_path.c_str());
     assert(false);
   }
 
@@ -92,8 +100,11 @@ int main(int argc, char** argv) {
     std::string topic_name =
         std::string("/ctrl/agent_") + std::to_string(vehicle_id);
     printf("subscribing to %s\n", topic_name.c_str());
-    _ros_sub[i] = nh.subscribe<vehicle_msgs::ControlSignal>(
-        topic_name, 10, boost::bind(CtrlSignalCallback, _1, vehicle_id));
+    _ros_sub[i] = nh->create_subscription<vehicle_msgs::msg::ControlSignal>(
+        topic_name, 10,
+        [vehicle_id](const vehicle_msgs::msg::ControlSignal::SharedPtr msg) {
+          CtrlSignalCallback(msg, vehicle_id, &_signal_set);
+        });
   }
 
   for (auto& vehicle_id : vehicle_ids) {
@@ -102,38 +113,40 @@ int main(int argc, char** argv) {
         vehicle_id, default_signal));
   }
 
-  ros::Subscriber ini_pos_sub =
-      nh.subscribe("/initialpose", 10, InitialPoseCallback);
-  ros::Subscriber goal_pos_sub =
-      nh.subscribe("/move_base_simple/goal", 10, NavGoalCallback);
+  auto ini_pos_sub =
+      nh->create_subscription<geometry_msgs::msg::PoseWithCovarianceStamped>(
+          "/initialpose", 10, InitialPoseCallback);
+  auto goal_pos_sub = nh->create_subscription<geometry_msgs::msg::PoseStamped>(
+      "/move_base_simple/goal", 10, NavGoalCallback);
 
-  ros::Rate rate(simulation_rate);
-  ros::Time next_gt_pub_time = ros::Time::now();
-  ros::Time next_gt_static_pub_time = next_gt_pub_time;
-  ros::Time next_vis_pub_time = ros::Time::now();
+  rclcpp::Rate rate(simulation_rate);
+  rclcpp::Time next_gt_pub_time = rclcpp::Clock().now();
+  rclcpp::Time next_gt_static_pub_time = next_gt_pub_time;
+  rclcpp::Time next_vis_pub_time = rclcpp::Clock().now();
 
   std::cout << "[PhySimulation] Initialization finished, waiting for callback"
             << std::endl;
 
-  int gt_msg_counter = 0;
-  while (ros::ok()) {
-    ros::spinOnce();
+  // int gt_msg_counter = 0;
+  while (rclcpp::ok()) {
+    rclcpp::spin_some(nh);
 
     phy_sim.UpdateSimulatorUsingSignalSet(_signal_set, 1.0 / simulation_rate);
 
-    ros::Time tnow = ros::Time::now();
+    rclcpp::Time tnow = rclcpp::Clock().now();
     if (tnow >= next_gt_pub_time) {
-      next_gt_pub_time += ros::Duration(1.0 / gt_msg_rate);
+      next_gt_pub_time += rclcpp::Duration::from_seconds(1.0 / gt_msg_rate);
       ros_adapter.PublishDynamicDataWithStamp(tnow);
     }
 
     if (tnow >= next_gt_static_pub_time) {
-      next_gt_static_pub_time += ros::Duration(1.0 / gt_static_msg_rate);
+      next_gt_static_pub_time +=
+          rclcpp::Duration::from_seconds(1.0 / gt_static_msg_rate);
       ros_adapter.PublishStaticDataWithStamp(tnow);
     }
 
     if (tnow >= next_vis_pub_time) {
-      next_vis_pub_time += ros::Duration(1.0 / visualization_msg_rate);
+      next_vis_pub_time += rclcpp::Duration::from_seconds(1.0 / visualization_msg_rate);
       visualizer.VisualizeDataWithStamp(tnow);
     }
 
@@ -141,6 +154,6 @@ int main(int argc, char** argv) {
   }
 
   _ros_sub.clear();
-  ros::shutdown();
+  rclcpp::shutdown();
   return 0;
 }

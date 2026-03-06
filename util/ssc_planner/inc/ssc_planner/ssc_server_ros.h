@@ -21,18 +21,24 @@
 #include "common/visualization/common_visualization_util.h"
 #include "moodycamel/atomicops.h"
 #include "moodycamel/readerwriterqueue.h"
-#include "ros/ros.h"
+#include "rclcpp/rclcpp.hpp"
 #include "semantic_map_manager/semantic_map_manager.h"
 #include "semantic_map_manager/visualizer.h"
 #include "ssc_planner/map_adapter.h"
 #include "ssc_planner/ssc_planner.h"
 #include "ssc_planner/ssc_visualizer.h"
-#include "tf/tf.h"
-#include "tf/transform_datatypes.h"
-#include "vehicle_msgs/ControlSignal.h"
+#include <tf2/LinearMath/Quaternion.h>
+#include <tf2/LinearMath/Matrix3x3.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
+#include <tf2/LinearMath/Transform.h>
+#include <tf2/LinearMath/Quaternion.h>
+#include <tf2/LinearMath/Matrix3x3.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
+#include "vehicle_msgs/msg/control_signal.hpp"
 #include "vehicle_msgs/encoder.h"
-#include "visualization_msgs/Marker.h"
-#include "visualization_msgs/MarkerArray.h"
+#include <visualization_msgs/msg/marker.hpp>
+#include <visualization_msgs/msg/marker_array.hpp>
+#include "visualization_msgs/msg/marker_array.h"
 
 namespace planning {
 class SscPlannerServer {
@@ -43,9 +49,9 @@ class SscPlannerServer {
     int kInputBufferSize{100};
   };
 
-  SscPlannerServer(ros::NodeHandle nh, int ego_id);
+  SscPlannerServer(rclcpp::Node::SharedPtr nh, int ego_id);
 
-  SscPlannerServer(ros::NodeHandle nh, double work_rate, int ego_id);
+  SscPlannerServer(rclcpp::Node::SharedPtr nh, double work_rate, int ego_id);
 
   void PushSemanticMap(const SemanticMapManager &smm);
 
@@ -80,14 +86,17 @@ class SscPlannerServer {
   decimal_t global_init_stamp_{0.0};
 
   // ros related
-  ros::NodeHandle nh_;
+  rclcpp::Node::SharedPtr nh_;
   decimal_t work_rate_ = 20.0;
   int ego_id_;
 
   bool require_intervention_signal_ = false;
-  ros::Publisher ctrl_signal_pub_;
-  ros::Publisher map_marker_pub_;
-  ros::Publisher executing_traj_vis_pub_;
+  rclcpp::Publisher<vehicle_msgs::msg::ControlSignal>::SharedPtr
+      ctrl_signal_pub_;
+  rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr
+      map_marker_pub_;
+  rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr
+      executing_traj_vis_pub_;
 
   // input buffer
   moodycamel::ReaderWriterQueue<SemanticMapManager> *p_input_smm_buff_;

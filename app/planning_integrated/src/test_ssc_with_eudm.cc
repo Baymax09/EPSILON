@@ -6,7 +6,7 @@
  * @date 2019-02
  * @copyright Copyright (c) 2019
  */
-#include <ros/ros.h>
+#include "rclcpp/rclcpp.hpp"
 #include <stdlib.h>
 
 #include <chrono>
@@ -19,7 +19,7 @@
 #include "semantic_map_manager/visualizer.h"
 #include "ssc_planner/ssc_server_ros.h"
 
-DECLARE_BACKWARD;
+// DECLARE_BACKWARD;
 double ssc_planner_work_rate = 20.0;
 double bp_work_rate = 20.0;
 
@@ -39,31 +39,40 @@ int SemanticMapUpdateCallback(
 }
 
 int main(int argc, char** argv) {
-  ros::init(argc, argv, "~");
-  ros::NodeHandle nh("~");
+  rclcpp::init(argc, argv);
+  auto nh = std::make_shared<rclcpp::Node>("test_ssc_with_eudm_node");
+  nh->declare_parameter<std::string>("ego_id", "");
+  nh->declare_parameter<std::string>("agent_config_path", "");
+  nh->declare_parameter<std::string>("bp_config_path", "");
+  nh->declare_parameter<std::string>("ssc_config_path", "");
 
   int ego_id;
-  if (!nh.getParam("ego_id", ego_id)) {
-    ROS_ERROR("Failed to get param %d", ego_id);
+  if (!nh->get_parameter("ego_id", ego_id)) {
+    RCLCPP_ERROR(rclcpp::get_logger("test_ssc_with_eudm"),
+                 "Failed to get param %d", ego_id);
     assert(false);
   }
   std::string agent_config_path;
-  if (!nh.getParam("agent_config_path", agent_config_path)) {
-    ROS_ERROR("Failed to get param agent_config_path %s",
-              agent_config_path.c_str());
+  if (!nh->get_parameter("agent_config_path", agent_config_path)) {
+    RCLCPP_ERROR(rclcpp::get_logger("test_ssc_with_eudm"),
+                 "Failed to get param agent_config_path %s",
+                 agent_config_path.c_str());
     assert(false);
   }
 
   std::string bp_config_path;
-  if (!nh.getParam("bp_config_path", bp_config_path)) {
-    ROS_ERROR("Failed to get param bp_config_path %s", bp_config_path.c_str());
+  if (!nh->get_parameter("bp_config_path", bp_config_path)) {
+    RCLCPP_ERROR(rclcpp::get_logger("test_ssc_with_eudm"),
+                 "Failed to get param bp_config_path %s",
+                 bp_config_path.c_str());
     assert(false);
   }
 
   std::string ssc_config_path;
-  if (!nh.getParam("ssc_config_path", ssc_config_path)) {
-    ROS_ERROR("Failed to get param ssc_config_path %s",
-              ssc_config_path.c_str());
+  if (!nh->get_parameter("ssc_config_path", ssc_config_path)) {
+    RCLCPP_ERROR(rclcpp::get_logger("test_ssc_with_eudm"),
+                 "Failed to get param ssc_config_path %s",
+                 ssc_config_path.c_str());
     assert(false);
   }
 
@@ -73,7 +82,8 @@ int main(int argc, char** argv) {
   smm_ros_adapter.BindMapUpdateCallback(SemanticMapUpdateCallback);
 
   double desired_vel;
-  nh.param("desired_vel", desired_vel, 6.0);
+  // nh->param("desired_vel", desired_vel, 6.0);
+  nh->declare_parameter<std::string>("desired_vel", "6.0");
   // Declare bp
   p_bp_server_ = new planning::EudmPlannerServer(nh, bp_work_rate, ego_id);
   p_bp_server_->set_user_desired_velocity(desired_vel);
@@ -90,9 +100,9 @@ int main(int argc, char** argv) {
   p_ssc_server_->Start();
 
   // TicToc timer;
-  ros::Rate rate(100);
-  while (ros::ok()) {
-    ros::spinOnce();
+  rclcpp::Rate rate(100);
+  while (rclcpp::ok()) {
+    rclcpp::spin_some(nh);
     rate.sleep();
   }
 

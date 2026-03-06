@@ -3,12 +3,13 @@
 
 #include <assert.h>
 #include <iostream>
+#include <fstream>
 #include <vector>
 
 #include <Eigen/Geometry>
 #include <Eigen/StdVector>
 
-#include <json/json.hpp>
+#include <nlohmann/json.hpp>
 
 #include "common/basics/basics.h"
 #include "common/basics/semantics.h"

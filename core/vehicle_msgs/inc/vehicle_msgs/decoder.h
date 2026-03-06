@@ -3,36 +3,37 @@
 
 #include <memory>
 
+#include <vehicle_msgs/msg/occupancy_grid_u_int8.hpp>
+
 #include "common/basics/basics.h"
 #include "common/basics/semantics.h"
 #include "common/state/free_state.h"
 #include "common/state/state.h"
 #include "common/visualization/common_visualization_util.h"
-
-#include "vehicle_msgs/ArenaInfo.h"
-#include "vehicle_msgs/ArenaInfoDynamic.h"
-#include "vehicle_msgs/ArenaInfoStatic.h"
-#include "vehicle_msgs/Circle.h"
-#include "vehicle_msgs/CircleObstacle.h"
-#include "vehicle_msgs/ControlSignal.h"
-#include "vehicle_msgs/FreeState.h"
-#include "vehicle_msgs/Lane.h"
-#include "vehicle_msgs/LaneNet.h"
-#include "vehicle_msgs/ObstacleSet.h"
-#include "vehicle_msgs/OccupancyGridFloat.h"
-#include "vehicle_msgs/OccupancyGridUInt8.h"
-#include "vehicle_msgs/PolygonObstacle.h"
-#include "vehicle_msgs/State.h"
-#include "vehicle_msgs/Vehicle.h"
-#include "vehicle_msgs/VehicleParam.h"
-#include "vehicle_msgs/VehicleSet.h"
+#include "vehicle_msgs/msg/arena_info.hpp"
+#include "vehicle_msgs/msg/arena_info_dynamic.hpp"
+#include "vehicle_msgs/msg/arena_info_static.hpp"
+#include "vehicle_msgs/msg/circle.hpp"
+#include "vehicle_msgs/msg/circle_obstacle.hpp"
+#include "vehicle_msgs/msg/control_signal.hpp"
+#include "vehicle_msgs/msg/free_state.hpp"
+#include "vehicle_msgs/msg/lane.hpp"
+#include "vehicle_msgs/msg/lane_net.hpp"
+#include "vehicle_msgs/msg/obstacle_set.hpp"
+#include "vehicle_msgs/msg/occupancy_grid_float.hpp"
+#include "vehicle_msgs/msg/polygon_obstacle.hpp"
+#include "vehicle_msgs/msg/state.hpp"
+#include "vehicle_msgs/msg/vehicle.hpp"
+#include "vehicle_msgs/msg/vehicle_param.hpp"
+#include "vehicle_msgs/msg/vehicle_set.hpp"
 
 namespace vehicle_msgs {
 class Decoder {
  public:
   static ErrorType GetFreeStateMsgFromRosFreeState(
-      const vehicle_msgs::FreeState &in_state, common::FreeState *state) {
-    state->time_stamp = in_state.header.stamp.toSec();
+      const vehicle_msgs::msg::FreeState& in_state, common::FreeState* state) {
+    state->time_stamp =
+        in_state.header.stamp.sec + in_state.header.stamp.nanosec * 1e-9;
     state->position[0] = in_state.pos.x;
     state->position[1] = in_state.pos.y;
     state->velocity[0] = in_state.vel.x;
@@ -43,9 +44,10 @@ class Decoder {
     return kSuccess;
   }
 
-  static ErrorType GetStateFromRosStateMsg(const vehicle_msgs::State &in_state,
-                                           common::State *state) {
-    state->time_stamp = in_state.header.stamp.toSec();
+  static ErrorType GetStateFromRosStateMsg(
+      const vehicle_msgs::msg::State& in_state, common::State* state) {
+    state->time_stamp =
+        in_state.header.stamp.sec + in_state.header.stamp.nanosec * 1e-9;
     state->vec_position[0] = in_state.vec_position.x;
     state->vec_position[1] = in_state.vec_position.y;
     state->angle = in_state.angle;
@@ -57,7 +59,8 @@ class Decoder {
   }
 
   static ErrorType GetVehicleSetFromRosVehicleSet(
-      const vehicle_msgs::VehicleSet &msg, common::VehicleSet *p_vehicle_set) {
+      const vehicle_msgs::msg::VehicleSet& msg,
+      common::VehicleSet* p_vehicle_set) {
     p_vehicle_set->vehicles.clear();
     for (int i = 0; i < (int)msg.vehicles.size(); ++i) {
       common::Vehicle vehicle;
@@ -68,8 +71,8 @@ class Decoder {
     return kSuccess;
   }
 
-  static ErrorType GetVehicleFromRosVehicle(const vehicle_msgs::Vehicle &msg,
-                                            common::Vehicle *p_vehicle) {
+  static ErrorType GetVehicleFromRosVehicle(
+      const vehicle_msgs::msg::Vehicle& msg, common::Vehicle* p_vehicle) {
     p_vehicle->set_id(msg.id.data);
     p_vehicle->set_subclass(msg.subclass.data);
     p_vehicle->set_type(msg.type.data);
@@ -83,8 +86,8 @@ class Decoder {
   }
 
   static ErrorType GetVehicleParamFromRosVehicleParam(
-      const vehicle_msgs::VehicleParam &msg,
-      common::VehicleParam *p_vehicle_param) {
+      const vehicle_msgs::msg::VehicleParam& msg,
+      common::VehicleParam* p_vehicle_param) {
     p_vehicle_param->set_width(msg.width);
     p_vehicle_param->set_length(msg.length);
     p_vehicle_param->set_wheel_base(msg.wheel_base);
@@ -97,8 +100,8 @@ class Decoder {
     return kSuccess;
   }
 
-  static ErrorType GetLaneNetFromRosLaneNet(const vehicle_msgs::LaneNet &msg,
-                                            common::LaneNet *p_lane_net) {
+  static ErrorType GetLaneNetFromRosLaneNet(
+      const vehicle_msgs::msg::LaneNet& msg, common::LaneNet* p_lane_net) {
     p_lane_net->lane_set.clear();
     for (const auto lane_msg : msg.lanes) {
       common::LaneRaw lane_raw;
@@ -109,8 +112,8 @@ class Decoder {
     return kSuccess;
   }
 
-  static ErrorType GetLaneRawFromRosLane(const vehicle_msgs::Lane &msg,
-                                         common::LaneRaw *p_lane) {
+  static ErrorType GetLaneRawFromRosLane(const vehicle_msgs::msg::Lane& msg,
+                                         common::LaneRaw* p_lane) {
     p_lane->id = msg.id;
     p_lane->dir = msg.dir;
 
@@ -134,7 +137,8 @@ class Decoder {
   }
 
   static ErrorType GetObstacleSetFromRosObstacleSet(
-      const vehicle_msgs::ObstacleSet &msg, common::ObstacleSet *obstacle_set) {
+      const vehicle_msgs::msg::ObstacleSet& msg,
+      common::ObstacleSet* obstacle_set) {
     obstacle_set->obs_circle.clear();
     obstacle_set->obs_polygon.clear();
     for (const auto obs : msg.obs_circle) {
@@ -153,29 +157,31 @@ class Decoder {
   }
 
   static ErrorType GetCircleObstacleFromRosCircleObstacle(
-      const vehicle_msgs::CircleObstacle &msg, common::CircleObstacle *circle) {
+      const vehicle_msgs::msg::CircleObstacle& msg,
+      common::CircleObstacle* circle) {
     circle->id = msg.id;
     GetCircleFromRosCircle(msg.circle, &circle->circle);
     return kSuccess;
   }
 
   static ErrorType GetPolygonObstacleFromRosPolygonObstacle(
-      const vehicle_msgs::PolygonObstacle &msg, common::PolygonObstacle *poly) {
+      const vehicle_msgs::msg::PolygonObstacle& msg,
+      common::PolygonObstacle* poly) {
     poly->id = msg.id;
     GetPolygonFromRosPolygon(msg.polygon, &poly->polygon);
     return kSuccess;
   }
 
-  static ErrorType GetCircleFromRosCircle(const vehicle_msgs::Circle &msg,
-                                          common::Circle *circle) {
+  static ErrorType GetCircleFromRosCircle(const vehicle_msgs::msg::Circle& msg,
+                                          common::Circle* circle) {
     circle->center.x = msg.center.x;
     circle->center.y = msg.center.y;
     circle->radius = msg.radius;
     return kSuccess;
   }
 
-  static ErrorType GetPolygonFromRosPolygon(const geometry_msgs::Polygon &msg,
-                                            common::Polygon *poly) {
+  static ErrorType GetPolygonFromRosPolygon(const geometry_msgs::msg::Polygon& msg,
+                                            common::Polygon* poly) {
     for (const auto p : msg.points) {
       common::Point pt;
       pt.x = p.x;
@@ -186,9 +192,9 @@ class Decoder {
   }
 
   static ErrorType GetSimulatorDataFromRosArenaInfo(
-      const vehicle_msgs::ArenaInfo &msg, ros::Time *time_stamp,
-      common::LaneNet *lane_net, common::VehicleSet *vehicle_set,
-      common::ObstacleSet *obstacle_set) {
+      const vehicle_msgs::msg::ArenaInfo& msg, rclcpp::Time* time_stamp,
+      common::LaneNet* lane_net, common::VehicleSet* vehicle_set,
+      common::ObstacleSet* obstacle_set) {
     *time_stamp = msg.header.stamp;
     GetLaneNetFromRosLaneNet(msg.lane_net, lane_net);
     GetVehicleSetFromRosVehicleSet(msg.vehicle_set, vehicle_set);
@@ -197,8 +203,8 @@ class Decoder {
   }
 
   static ErrorType GetSimulatorDataFromRosArenaInfoStatic(
-      const vehicle_msgs::ArenaInfoStatic &msg, ros::Time *time_stamp,
-      common::LaneNet *lane_net, common::ObstacleSet *obstacle_set) {
+      const vehicle_msgs::msg::ArenaInfoStatic& msg, rclcpp::Time* time_stamp,
+      common::LaneNet* lane_net, common::ObstacleSet* obstacle_set) {
     *time_stamp = msg.header.stamp;
     GetLaneNetFromRosLaneNet(msg.lane_net, lane_net);
     GetObstacleSetFromRosObstacleSet(msg.obstacle_set, obstacle_set);
@@ -206,16 +212,16 @@ class Decoder {
   }
 
   static ErrorType GetSimulatorDataFromRosArenaInfoDynamic(
-      const vehicle_msgs::ArenaInfoDynamic &msg, ros::Time *time_stamp,
-      common::VehicleSet *vehicle_set) {
+      const vehicle_msgs::msg::ArenaInfoDynamic& msg, rclcpp::Time* time_stamp,
+      common::VehicleSet* vehicle_set) {
     *time_stamp = msg.header.stamp;
     GetVehicleSetFromRosVehicleSet(msg.vehicle_set, vehicle_set);
     return kSuccess;
   }
 
   static ErrorType GetControlSignalFromRosControlSignal(
-      const vehicle_msgs::ControlSignal &msg,
-      common::VehicleControlSignal *ctrl) {
+      const vehicle_msgs::msg::ControlSignal& msg,
+      common::VehicleControlSignal* ctrl) {
     ctrl->acc = msg.acc;
     ctrl->steer_rate = msg.steer_rate;
     ctrl->is_openloop = msg.is_openloop.data;

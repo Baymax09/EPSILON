@@ -5,6 +5,8 @@
 #include <memory>
 #include <string>
 #include <thread>
+#include <fcntl.h>
+#include <unistd.h>
 
 #include "common/basics/basics.h"
 #include "common/interface/planner.h"

@@ -252,7 +252,7 @@ ErrorType DataRenderer::GetSurroundingLaneNet(const common::LaneNet &lane_net) {
                                  ego_vehicle_.state().vec_position(1)};
   const decimal_t search_radius =
       surrounding_search_radius_ * surrounding_search_radius_ * 4;
-  std::vector<std::pair<size_t, decimal_t>> ret_matches;
+  std::vector<std::pair<unsigned int, double>> ret_matches;
   nanoflann::SearchParams params;
   // const size_t nMatches =
   kdtree_lane_net_->radiusSearch(&query_pt[0], search_radius, ret_matches,

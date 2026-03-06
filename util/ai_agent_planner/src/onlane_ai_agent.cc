@@ -1,4 +1,3 @@
-#include <ros/ros.h>
 #include <stdlib.h>
 
 #include <chrono>
@@ -9,20 +8,21 @@
 #include "common/basics/tic_toc.h"
 #include "forward_simulator/multimodal_forward.h"
 #include "forward_simulator/onlane_forward_simulation.h"
+#include "rclcpp/rclcpp.hpp"
 #include "semantic_map_manager/ros_adapter.h"
 #include "semantic_map_manager/semantic_map_manager.h"
 #include "semantic_map_manager/visualizer.h"
-#include "sensor_msgs/Joy.h"
-#include "vehicle_msgs/ControlSignal.h"
+#include "sensor_msgs/msg/joy.hpp"
+#include "vehicle_msgs/msg/control_signal.hpp"
 #include "vehicle_msgs/encoder.h"
 
-DECLARE_BACKWARD;
+// DECLARE_BACKWARD;
 double fs_work_rate = 50.0;
 double visualization_msg_rate = 20.0;
 double bp_work_rate = 20.0;
 int ego_id;
 
-ros::Publisher ctrl_signal_pub_;
+rclcpp::Publisher<vehicle_msgs::msg::ControlSignal>::SharedPtr ctrl_signal_pub_;
 planning::BehaviorPlannerServer* p_bp_server_{nullptr};
 moodycamel::ReaderWriterQueue<semantic_map_manager::SemanticMapManager>*
     p_ctrl_input_smm_buff_{nullptr};
@@ -32,7 +32,7 @@ common::State desired_state;
 bool has_init_state = false;
 double desired_vel;
 
-ros::Time next_vis_pub_time;
+rclcpp::Time next_vis_pub_time;
 semantic_map_manager::SemanticMapManager last_smm;
 planning::OnLaneForwardSimulation::Param sim_param;
 
@@ -118,18 +118,19 @@ void PublishControl() {
 
   common::VehicleControlSignal ctrl(state);
   {
-    vehicle_msgs::ControlSignal ctrl_msg;
+    vehicle_msgs::msg::ControlSignal ctrl_msg;
     vehicle_msgs::Encoder::GetRosControlSignalFromControlSignal(
-        ctrl, ros::Time::now(), std::string("map"), &ctrl_msg);
-    ctrl_signal_pub_.publish(ctrl_msg);
+        ctrl, rclcpp::Clock().now(), std::string("map"), &ctrl_msg);
+    ctrl_signal_pub_->publish(ctrl_msg);
   }
   desired_state = ctrl.state;
 
   // visualization
   {
-    ros::Time tnow = ros::Time::now();
+    rclcpp::Time tnow = rclcpp::Clock().now();
     if (tnow >= next_vis_pub_time) {
-      next_vis_pub_time += ros::Duration(1.0 / visualization_msg_rate);
+      next_vis_pub_time +=
+          rclcpp::Duration::from_seconds(1.0 / visualization_msg_rate);
       p_smm_vis_->VisualizeDataWithStamp(tnow, last_smm);
       p_smm_vis_->SendTfWithStamp(tnow, last_smm);
     }
@@ -137,33 +138,39 @@ void PublishControl() {
 }
 
 int main(int argc, char** argv) {
-  ros::init(argc, argv, "~");
-  ros::NodeHandle nh("~");
+  rclcpp::init(argc, argv);
+  auto nh = std::make_shared<rclcpp::Node>("onlane_ai_agent_node");
+  nh->declare_parameter<std::string>("ego_id", "");
+  nh->declare_parameter<std::string>("agent_config_path", "");
 
-  next_vis_pub_time = ros::Time::now();
+  next_vis_pub_time = rclcpp::Clock().now();
 
-  if (!nh.getParam("ego_id", ego_id)) {
-    ROS_ERROR("Failed to get param %d", ego_id);
+  if (!nh->get_parameter("ego_id", ego_id)) {
+    RCLCPP_ERROR(rclcpp::get_logger("onlane_ai_agent"),
+                 "Failed to get param %d", ego_id);
     assert(false);
   }
 
   std::string agent_config_path;
-  if (!nh.getParam("agent_config_path", agent_config_path)) {
-    ROS_ERROR("Failed to get param %s", agent_config_path.c_str());
+  if (!nh->get_parameter("agent_config_path", agent_config_path)) {
+    RCLCPP_ERROR(rclcpp::get_logger("onlane_ai_agent"),
+                 "Failed to get param %d", agent_config_path.c_str());
     assert(false);
   }
 
-  ctrl_signal_pub_ = nh.advertise<vehicle_msgs::ControlSignal>("ctrl", 10);
+  ctrl_signal_pub_ =
+      nh->create_publisher<vehicle_msgs::msg::ControlSignal>("ctrl", 10);
 
   int autonomous_level;
-  nh.param("desired_vel", desired_vel, 6.0);
-  nh.param("autonomous_level", autonomous_level, 2);
+  nh->declare_parameter<std::string>("desired_vel", "6.0");
+  nh->declare_parameter<std::string>("autonomous_level", "2");
+  nh->declare_parameter<std::string>("aggressiveness_level", "3");
 
   // Get desired velocity noise
   rng.seed(
       std::chrono::high_resolution_clock::now().time_since_epoch().count());
   // config aggressiveness
-  nh.param("aggressiveness_level", aggressiveness_level, 3);
+  nh->get_parameter("aggressiveness_level", aggressiveness_level);
   // std::uniform_int_distribution<int> dist_agg(1, 5);
   // aggressiveness_level = dist_agg(rng);
   // aggressiveness_level = 5;
@@ -193,9 +200,9 @@ int main(int argc, char** argv) {
       semantic_map_manager::SemanticMapManager>(100);
 
   p_bp_server_->Start();
-  ros::Rate rate(fs_work_rate);
-  while (ros::ok()) {
-    ros::spinOnce();
+  rclcpp::Rate rate(fs_work_rate);
+  while (rclcpp::ok()) {
+    rclcpp::spin_some(nh);
     PublishControl();
     // RandomBehavior();
     rate.sleep();

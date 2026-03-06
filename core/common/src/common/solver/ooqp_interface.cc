@@ -3,9 +3,9 @@
 #include <stdexcept>
 
 #include "GondzioSolver.h"
+#include "QpGenDense.h"
 #include "QpGenData.h"
 #include "QpGenResiduals.h"
-#include "QpGenSparseMa27.h"
 #include "QpGenVars.h"
 #include "Status.h"
 
@@ -87,35 +87,30 @@ bool OoQpItf::solve(const Eigen::SparseMatrix<double, Eigen::RowMajor>& Q,
   // Initialize new problem formulation.
   int my = bcopy.size();
   int mz = lowerLimitForInequalityConstraints.size();
-  int nnzQ = Q_triangular.nonZeros();
-  int nnzA = Acopy.nonZeros();
-  int nnzC = Ccopy.nonZeros();
 
-  QpGenSparseMa27* qp = new QpGenSparseMa27(nx, my, mz, nnzQ, nnzA, nnzC);
-  // Fill in problem data.
+  // Convert sparse matrices to dense for QpGenDense
+  Eigen::MatrixXd Q_dense = Q_triangular.toDense();
+  Eigen::MatrixXd A_dense = Acopy.toDense();
+  Eigen::MatrixXd C_dense = Ccopy.toDense();
+
+  QpGenDense* qp = new QpGenDense(nx, my, mz);
+  // Fill in problem data - QpGenDense uses dense matrices directly
   double* cp = &ccopy.coeffRef(0);
-  int* krowQ = Q_triangular.outerIndexPtr();
-  int* jcolQ = Q_triangular.innerIndexPtr();
-  double* dQ = Q_triangular.valuePtr();
+  double* Qd = Q_dense.data();
   double* xlow = &lowerLimitForX.coeffRef(0);
   char* ixlow = &useLowerLimitForX.coeffRef(0);
   double* xupp = &upperLimitForX.coeffRef(0);
   char* ixupp = &useUpperLimitForX.coeffRef(0);
-  int* krowA = Acopy.outerIndexPtr();
-  int* jcolA = Acopy.innerIndexPtr();
-  double* dA = Acopy.valuePtr();
+  double* Ad = A_dense.data();
   double* bA = &bcopy.coeffRef(0);
-  int* krowC = Ccopy.outerIndexPtr();
-  int* jcolC = Ccopy.innerIndexPtr();
-  double* dC = Ccopy.valuePtr();
+  double* Cd = C_dense.data();
   double* clow = &lowerLimitForInequalityConstraints.coeffRef(0);
   char* iclow = &useLowerLimitForInequalityConstraints.coeffRef(0);
   double* cupp = &upperLimitForInequalityConstraints.coeffRef(0);
   char* icupp = &useUpperLimitForInequalityConstraints.coeffRef(0);
 
   QpGenData* prob = (QpGenData*)qp->makeData(
-      cp, krowQ, jcolQ, dQ, xlow, ixlow, xupp, ixupp, krowA, jcolA, dA, bA,
-      krowC, jcolC, dC, clow, iclow, cupp, icupp);
+      cp, Qd, xlow, ixlow, xupp, ixupp, Ad, bA, Cd, clow, iclow, cupp, icupp);
 
   // Create object to store problem variables.
   QpGenVars* vars = (QpGenVars*)qp->makeVariables(prob);

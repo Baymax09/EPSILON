@@ -13,6 +13,8 @@
 #include <set>
 #include <string>
 #include <thread>
+#include <fcntl.h>   // 必须添加：定义了 O_RDONLY 等宏
+#include <unistd.h>  // 必须添加：定义了 open, close 等系统调用
 
 #include "common/basics/basics.h"
 #include "common/interface/planner.h"

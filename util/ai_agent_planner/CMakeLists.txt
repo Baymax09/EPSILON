@@ -1,55 +1,54 @@
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.5)
 project(ai_agent_planner)
+
+# 设置 C++ 标准
+if(NOT CMAKE_CXX_STANDARD)
+  set(CMAKE_CXX_STANDARD 14)
+endif()
 
 set(CMAKE_VERBOSE_MAKEFILE "true")
 set(CMAKE_BUILD_TYPE "Release")
-set(CMAKE_CXX_FLAGS "-std=c++11  -g")
-set(CMAKE_CXX_FLAGS_RELEASE "-O3 -Wall")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -Wall")
 
-find_package(catkin REQUIRED COMPONENTS
-    roscpp
-    visualization_msgs
-    sensor_msgs)
+# 基础编译选项
+add_compile_options("-O3" "-Wall" "-g")
 
-set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
+# 1. 查找 ament 及其 ROS 2 核心依赖
+find_package(ament_cmake REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(visualization_msgs REQUIRED)
+find_package(sensor_msgs REQUIRED)
 
+# 2. 查找自定义/第三方依赖
 find_package(common REQUIRED)
-find_package(vehicle_model REQUIRED)
 find_package(vehicle_model REQUIRED)
 find_package(forward_simulator REQUIRED)
 find_package(semantic_map_manager REQUIRED)
 find_package(behavior_planner REQUIRED)
-#if this catkin packge's header is used by other packages, use catkin_package to
-#declare the include directories of this package.
-catkin_package(
-#	INCLUDE_DIRS inc
-)
+find_package(route_planner REQUIRED) # ✅ 修复：必须显式查找 route_planner
 
-include_directories(
-#    inc
-    ${catkin_INCLUDE_DIRS}
-    ${common_INCLUDE_DIRS}
-    ${semantic_map_manager_INCLUDE_DIRS}
-    ${vehicle_model_INCLUDE_DIRS}
-    ${forward_simulator_INCLUDE_DIRS}
-    ${behavior_planner_INCLUDE_DIRS}
-)
-
+# 3. 创建可执行文件
 add_executable(onlane_ai_agent
     src/onlane_ai_agent.cc
 )
-target_link_libraries(onlane_ai_agent
-    ${catkin_LIBRARIES}
-    hkust_smm_ros
-    behavior_planner_ros
-    hkust_pl_vehicle_model
+
+# 4. 链接依赖项
+# ament_target_dependencies 会自动处理头文件路径和库链接
+ament_target_dependencies(onlane_ai_agent
+    rclcpp
+    visualization_msgs
+    sensor_msgs
+    common
+    vehicle_model
+    forward_simulator
+    semantic_map_manager
+    behavior_planner
+    route_planner
 )
 
-#install the hearder files so that other packages can include.
-#install(DIRECTORY include/${PROJECT_NAME}/
-#   DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
- #  DESTINATION ${CATKIN_DEVEL_PREFIX}/${CATKIN_PACKAGE_INCLUDE_DESTINATION}/
- #  FILES_MATCHING PATTERN "*.h"
- #  PATTERN ".svn" EXCLUDE
-#)
+# 5. 安装规则
+install(TARGETS onlane_ai_agent
+    DESTINATION lib/${PROJECT_NAME}
+)
+
+# 6. 导出并声明 ament 包
+ament_package()

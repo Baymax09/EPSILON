@@ -1,4 +1,4 @@
-Header header
+std_msgs/Header header
 
 # Map width [cells]
 uint32 width

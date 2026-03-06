@@ -13,7 +13,7 @@
 
 namespace planning {
 
-EudmPlannerServer::EudmPlannerServer(ros::NodeHandle nh, int ego_id)
+EudmPlannerServer::EudmPlannerServer(rclcpp::Node::SharedPtr nh, int ego_id)
     : nh_(nh), work_rate_(20.0), ego_id_(ego_id) {
   p_visualizer_ = new EudmPlannerVisualizer(nh, &bp_manager_, ego_id);
   p_input_smm_buff_ = new moodycamel::ReaderWriterQueue<SemanticMapManager>(
@@ -21,7 +21,7 @@ EudmPlannerServer::EudmPlannerServer(ros::NodeHandle nh, int ego_id)
   task_.user_perferred_behavior = 0;
 }
 
-EudmPlannerServer::EudmPlannerServer(ros::NodeHandle nh, double work_rate,
+EudmPlannerServer::EudmPlannerServer(rclcpp::Node::SharedPtr nh, double work_rate,
                                      int ego_id)
     : nh_(nh), work_rate_(work_rate), ego_id_(ego_id) {
   p_visualizer_ = new EudmPlannerVisualizer(nh, &bp_manager_, ego_id);
@@ -35,18 +35,21 @@ void EudmPlannerServer::PushSemanticMap(const SemanticMapManager &smm) {
 }
 
 void EudmPlannerServer::PublishData() {
-  p_visualizer_->PublishDataWithStamp(ros::Time::now());
+  p_visualizer_->PublishDataWithStamp(rclcpp::Clock().now());
 }
 
-void EudmPlannerServer::Init(const std::string &bp_config_path) {
+void EudmPlannerServer::Init(const std::string& bp_config_path) {
   bp_manager_.Init(bp_config_path, work_rate_);
-  joy_sub_ = nh_.subscribe("/joy", 10, &EudmPlannerServer::JoyCallback, this);
-  nh_.param("use_sim_state", use_sim_state_, true);
+  joy_sub_ = nh_->create_subscription<sensor_msgs::msg::Joy>(
+      "/joy", rclcpp::QoS(10).reliable(),
+      std::bind(&EudmPlannerServer::JoyCallback, this, std::placeholders::_1));
+  nh_->declare_parameter<bool>("use_sim_state", true);
+  nh_->get_parameter("use_sim_state", use_sim_state_);
   p_visualizer_->Init();
   p_visualizer_->set_use_sim_state(use_sim_state_);
 }
 
-void EudmPlannerServer::JoyCallback(const sensor_msgs::Joy::ConstPtr &msg) {
+void EudmPlannerServer::JoyCallback(const sensor_msgs::msg::Joy::SharedPtr msg) {
   int msg_id;
   if (std::string("").compare(msg->header.frame_id) == 0) {
     msg_id = 0;

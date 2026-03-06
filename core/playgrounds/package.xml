@@ -1,15 +1,16 @@
 <?xml version="1.0"?>
-<package>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
   <name>playgrounds</name>
   <version>0.0.0</version>
-  <description>Just put test data here</description>
+  <description>Just put test data here </description>
 
-  <maintainer email="wdingae@todo.com">HKUST_UAV_GROUP</maintainer>
+  <maintainer email="wdingae@todo.com">HKUST_UAV_GROUP </maintainer>
+  <license>TODO </license>
 
-  <license>TODO</license>
+  <buildtool_depend>ament_cmake</buildtool_depend>
 
-  <!-- The export tag contains other, unspecified, tags -->
   <export>
-    <!-- Other tools can request additional information be placed here -->
+    <build_type>ament_cmake</build_type>
   </export>
 </package>

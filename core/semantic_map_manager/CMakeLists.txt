@@ -1,75 +1,145 @@
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.5)
 project(semantic_map_manager)
 
-set(CMAKE_VERBOSE_MAKEFILE "true")
-set(CMAKE_BUILD_TYPE "Release")
-set(CMAKE_CXX_FLAGS "-std=c++11  -g")
-set(CMAKE_CXX_FLAGS_RELEASE "-O3 -Wall")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -Wall")
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-find_package(catkin REQUIRED COMPONENTS
-    roscpp
-    visualization_msgs
-    sensor_msgs
-    geometry_msgs
-    tf
-)
+# =========================
+# 编译标准
+# =========================
+if(NOT CMAKE_CXX_STANDARD)
+  set(CMAKE_CXX_STANDARD 14)
+endif()
 
-find_package(OpenCV REQUIRED)
-find_package(Eigen3 REQUIRED)
+set(CMAKE_VERBOSE_MAKEFILE ON)
+set(CMAKE_BUILD_TYPE Release)
+add_compile_options(-O3 -Wall)
+
+# =========================
+# ROS 2 & ament
+# =========================
+find_package(ament_cmake REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(visualization_msgs REQUIRED)
+find_package(sensor_msgs REQUIRED)
+find_package(geometry_msgs REQUIRED)
+find_package(tf2 REQUIRED)
+find_package(tf2_ros REQUIRED)
+find_package(tf2_geometry_msgs REQUIRED)
+
+# =========================
+# 项目内依赖
+# =========================
 find_package(common REQUIRED)
 find_package(motion_predictor REQUIRED)
-find_package(vehicle_msgs REQUIRED)
 find_package(vehicle_model REQUIRED)
+find_package(vehicle_msgs REQUIRED)
 
-set(THIRD_PARTY_INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/thirdparty)
+# =========================
+# 第三方库
+# =========================
+find_package(OpenCV REQUIRED)
+find_package(Eigen3 REQUIRED)
 
-#if this catkin packge's header is used by other packages, use catkin_package to
-#declare the include directories of this package.
-catkin_package(
-    INCLUDE_DIRS inc ${vehicle_msgs_INCLUDE_DIRS} ${vehicle_model_INCLUDE_DIRS} ${THIRD_PARTY_INCLUDE_DIRS} ${motion_predictor_INCLUDE_DIRS}
-    LIBRARIES hkust_pl_smm hkust_smm_ros
+set(THIRD_PARTY_INCLUDE_DIRS
+  ${PROJECT_SOURCE_DIR}/thirdparty
 )
 
-include_directories(
-    inc
-    ${THIRD_PARTY_INCLUDE_DIRS}
-    ${vehicle_msgs_INCLUDE_DIRS}
-    ${vehicle_model_INCLUDE_DIRS}
-    ${common_INCLUDE_DIRS}
-    ${motion_predictor_INCLUDE_DIRS}
-    ${catkin_INCLUDE_DIRS}
-    ${EIGEN3_INCLUDE_DIR}
-    ${OpenCV_INCLUDE_DIRS}
-)
-
+# =========================
+# 核心算法库
+# =========================
 add_library(hkust_pl_smm
-    src/semantic_map_manager.cc
-    src/data_renderer.cc
-    src/config_loader.cc
-    src/traffic_signal_manager.cc
+  src/semantic_map_manager.cc
+  src/data_renderer.cc
+  src/config_loader.cc
+  src/traffic_signal_manager.cc
 )
+
+target_include_directories(hkust_pl_smm PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/inc>
+  $<BUILD_INTERFACE:${THIRD_PARTY_INCLUDE_DIRS}>
+  $<INSTALL_INTERFACE:include>
+  ${EIGEN3_INCLUDE_DIRS}
+  ${OpenCV_INCLUDE_DIRS}
+)
+
+ament_target_dependencies(hkust_pl_smm
+  rclcpp
+  common
+  motion_predictor
+  vehicle_model
+  vehicle_msgs
+  tf2
+  tf2_ros
+  tf2_geometry_msgs
+)
+
 target_link_libraries(hkust_pl_smm
-    ${vehicle_model_LIBRARIES}
-    ${common_LIBRARIES}
-    ${motion_predictor_LIBRARIES}
-    ${OpenCV_LIBS}
+  ${OpenCV_LIBRARIES}
 )
 
+# =========================
+# ROS 适配层库
+# =========================
 add_library(hkust_smm_ros
-    src/ros_adapter.cc
-    src/visualizer.cc
+  src/ros_adapter.cc
+  src/visualizer.cc
 )
+
+target_include_directories(hkust_smm_ros PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/inc>
+  $<INSTALL_INTERFACE:include>
+)
+
 target_link_libraries(hkust_smm_ros
-    ${catkin_LIBRARIES}
-    hkust_pl_smm
+  hkust_pl_smm
 )
 
+ament_target_dependencies(hkust_smm_ros
+  rclcpp
+  visualization_msgs
+  sensor_msgs
+  geometry_msgs
+  tf2
+  tf2_ros
+  tf2_geometry_msgs
+  vehicle_msgs
+)
 
-#install the hearder files so that other packages can include.
-#install(DIRECTORY include/${PROJECT_NAME}/
-#   DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
- #  DESTINATION ${CATKIN_DEVEL_PREFIX}/${CATKIN_PACKAGE_INCLUDE_DESTINATION}/
- #  FILES_MATCHING PATTERN "*.h"
- #  PATTERN ".svn" EXCLUDE
-#)
+# =========================
+# 安装
+# =========================
+install(
+  TARGETS hkust_pl_smm hkust_smm_ros
+  EXPORT export_${PROJECT_NAME}
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
+)
+
+install(
+  DIRECTORY inc/
+  DESTINATION include
+)
+
+# =========================
+# 导出（给下游包用）
+# =========================
+ament_export_include_directories(include)
+ament_export_libraries(hkust_pl_smm hkust_smm_ros)
+ament_export_targets(export_${PROJECT_NAME})
+
+ament_export_dependencies(
+  rclcpp
+  visualization_msgs
+  sensor_msgs
+  geometry_msgs
+  tf2
+  tf2_ros
+  tf2_geometry_msgs
+  common
+  motion_predictor
+  vehicle_model
+  vehicle_msgs
+)
+
+ament_package()

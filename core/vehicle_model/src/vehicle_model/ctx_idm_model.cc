@@ -1,7 +1,7 @@
 #include "vehicle_model/ctx_idm_model.h"
 
 #include "common/math/calculations.h"
-#include "odeint-v2/boost/numeric/odeint.hpp"
+#include <boost/numeric/odeint.hpp>
 
 namespace odeint = boost::numeric::odeint;
 

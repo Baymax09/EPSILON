@@ -22,7 +22,10 @@
 
 #define BACKWARD_HAS_UNWIND 1
 #define BACKWARD_HAS_DW 1
+#ifdef ENABLE_BACKWARD
 #include "backward.hpp"
+#endif
+
 
 enum ErrorType { kSuccess = 0, kWrongStatus, kIllegalInput, kUnknown };
 

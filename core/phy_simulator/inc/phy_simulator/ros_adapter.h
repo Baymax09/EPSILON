@@ -11,11 +11,13 @@
 #define _CORE_SEMANTIC_MAP_INC_PHY_SIMULATOR_ROS_ADAPTER_H_
 
 #include <assert.h>
+
 #include <iostream>
 #include <vector>
 
-#include "ros/ros.h"
-#include "vehicle_msgs/encoder.h"
+#include "rclcpp/rclcpp.hpp"
+// #include "vehicle_msgs/encoder.h"
+#include "encoder.h"
 
 #include "common/basics/basics.h"
 #include "common/basics/semantics.h"
@@ -36,7 +38,7 @@ class RosAdapter {
    *
    * @param nh node handle
    */
-  RosAdapter(ros::NodeHandle nh);
+  RosAdapter(rclcpp::Node::SharedPtr nh);
 
   void set_phy_sim(PhySimulation *p_phy_sim) { p_phy_sim_ = p_phy_sim; }
 
@@ -45,27 +47,29 @@ class RosAdapter {
    *
    * @param stamp ROS time stamp
    */
-  void PublishDataWithStamp(const ros::Time &stamp);
+  void PublishDataWithStamp(const rclcpp::Time &stamp);
 
   /**
    * @brief Publish dynamic data of simulator with time stamp
    *
    * @param stamp ROS time stamp
    */
-  void PublishDynamicDataWithStamp(const ros::Time &stamp);
+  void PublishDynamicDataWithStamp(const rclcpp::Time &stamp);
 
   /**
    * @brief Publish static data of simulator with time stamp
    *
    * @param stamp ROS time stamp
    */
-  void PublishStaticDataWithStamp(const ros::Time &stamp);
+  void PublishStaticDataWithStamp(const rclcpp::Time &stamp);
 
  private:
-  ros::NodeHandle nh_;
-  ros::Publisher arena_info_pub_;
-  ros::Publisher arena_info_static_pub_;
-  ros::Publisher arena_info_dynamic_pub_;
+  rclcpp::Node::SharedPtr nh_;
+  rclcpp::Publisher<vehicle_msgs::msg::ArenaInfo>::SharedPtr arena_info_pub_;
+  rclcpp::Publisher<vehicle_msgs::msg::ArenaInfoStatic>::SharedPtr
+      arena_info_static_pub_;
+  rclcpp::Publisher<vehicle_msgs::msg::ArenaInfoDynamic>::SharedPtr
+      arena_info_dynamic_pub_;
 
   PhySimulation *p_phy_sim_;
 };  // RosAdapter

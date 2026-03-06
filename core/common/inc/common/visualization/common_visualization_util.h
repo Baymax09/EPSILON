@@ -24,17 +24,21 @@
 #include "common/state/state.h"
 #include "common/state/waypoint.h"
 #include "common/trajectory/trajectory.h"
-#include "geometry_msgs/Point.h"
-#include "geometry_msgs/Point32.h"
-#include "geometry_msgs/Pose.h"
-#include "geometry_msgs/PoseArray.h"
-#include "geometry_msgs/PoseStamped.h"
-#include "geometry_msgs/PoseWithCovarianceStamped.h"
-#include "nav_msgs/OccupancyGrid.h"
-#include "sensor_msgs/PointCloud.h"
-#include "tf/transform_datatypes.h"
-#include "visualization_msgs/Marker.h"
-#include "visualization_msgs/MarkerArray.h"
+#include "geometry_msgs/msg/point.hpp"
+#include "geometry_msgs/msg/point32.hpp"
+#include "geometry_msgs/msg/pose.hpp"
+#include "geometry_msgs/msg/pose_array.hpp"
+#include "geometry_msgs/msg/pose_stamped.hpp"
+#include "geometry_msgs/msg/pose_with_covariance_stamped.hpp"
+#include "nav_msgs/msg/occupancy_grid.hpp"
+#include "sensor_msgs/msg/point_cloud.hpp"
+#include <tf2/LinearMath/Transform.h>
+#include <tf2/LinearMath/Quaternion.h>
+#include <tf2/LinearMath/Matrix3x3.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
+#include <visualization_msgs/msg/marker.hpp>
+#include <visualization_msgs/msg/marker_array.hpp>
+#include "visualization_msgs/msg/marker_array.h"
 
 namespace common {
 
@@ -62,13 +66,13 @@ class VisualizationUtil {
                                          const decimal_t step,
                                          const Vec3f scale,
                                          const ColorARGB color,
-                                         visualization_msgs::Marker* marker) {
-    marker->type = visualization_msgs::Marker::LINE_STRIP;
-    marker->action = visualization_msgs::Marker::MODIFY;
+                                         visualization_msgs::msg::Marker* marker) {
+    marker->type = visualization_msgs::msg::Marker::LINE_STRIP;
+    marker->action = visualization_msgs::msg::Marker::MODIFY;
     FillScaleColorInMarker(scale, color, marker);
     for (decimal_t s = s0; s < s1; s += step) {
       auto v = poly.evaluate(s);
-      geometry_msgs::Point point;
+      geometry_msgs::msg::Point point;
       ConvertVectorToPoint<N_DIM>(v, &point);
       marker->points.push_back(point);
     }
@@ -93,14 +97,14 @@ class VisualizationUtil {
                                      const decimal_t step, const Vec3f& scale,
                                      const ColorARGB& color,
                                      const decimal_t offset_z,
-                                     visualization_msgs::Marker* marker) {
-    marker->type = visualization_msgs::Marker::LINE_STRIP;
-    marker->action = visualization_msgs::Marker::MODIFY;
+                                     visualization_msgs::msg::Marker* marker) {
+    marker->type = visualization_msgs::msg::Marker::LINE_STRIP;
+    marker->action = visualization_msgs::msg::Marker::MODIFY;
     FillScaleColorInMarker(scale, color, marker);
     for (decimal_t s = spline.begin(); s < spline.end(); s += step) {
       Vecf<N_DIM> ret;
       if (spline.evaluate(s, 0, &ret) == kSuccess) {
-        geometry_msgs::Point point;
+        geometry_msgs::msg::Point point;
         ConvertVectorToPoint<N_DIM>(ret, &point);
         point.z = offset_z;
         marker->points.push_back(point);
@@ -124,7 +128,7 @@ class VisualizationUtil {
   static ErrorType GetMarkerByLane(const Lane& lane, const decimal_t step,
                                    const Vec3f& scale, const ColorARGB& color,
                                    const decimal_t offset_z,
-                                   visualization_msgs::Marker* marker) {
+                                   visualization_msgs::msg::Marker* marker) {
     // unwrap the parameterization
 
     if (!lane.IsValid()) return kIllegalInput;
@@ -147,16 +151,16 @@ class VisualizationUtil {
   static ErrorType GetMarkerArrayByTrajectory(
       const Trajectory& traj, const decimal_t step, const Vec3f& scale,
       const ColorARGB& color, const decimal_t offset_z,
-      visualization_msgs::MarkerArray* marker_arr) {
+      visualization_msgs::msg::MarkerArray* marker_arr) {
     if (!traj.IsValid()) return kIllegalInput;
-    visualization_msgs::Marker traj_mk;
-    traj_mk.type = visualization_msgs::Marker::LINE_STRIP;
-    traj_mk.action = visualization_msgs::Marker::MODIFY;
+    visualization_msgs::msg::Marker traj_mk;
+    traj_mk.type = visualization_msgs::msg::Marker::LINE_STRIP;
+    traj_mk.action = visualization_msgs::msg::Marker::MODIFY;
     FillScaleColorInMarker(scale, color, &traj_mk);
     for (decimal_t s = traj.begin(); s < traj.end(); s += step) {
       common::State state;
       if (traj.GetState(s, &state) == kSuccess) {
-        geometry_msgs::Point point;
+        geometry_msgs::msg::Point point;
         point.x = state.vec_position[0];
         point.y = state.vec_position[1];
         point.z = offset_z;
@@ -177,7 +181,7 @@ class VisualizationUtil {
    */
   template <int N_DIM>
   static ErrorType ConvertVectorToPoint(const Vecf<N_DIM> vec,
-                                        geometry_msgs::Point* point) {
+                                        geometry_msgs::msg::Point* point) {
     point->x = 0.0;
     point->y = 0.0;
     point->z = 0.0;
@@ -204,7 +208,7 @@ class VisualizationUtil {
    */
   template <int N_DIM>
   static ErrorType ConvertVectorToPoint32(const Vecf<N_DIM>& vec,
-                                          geometry_msgs::Point32* point) {
+                                          geometry_msgs::msg::Point32* point) {
     point->x = 0.0;
     point->y = 0.0;
     point->z = 0.0;
@@ -231,13 +235,13 @@ class VisualizationUtil {
    */
   static ErrorType GetMarkerArrayByStateVector(
       const vec_E<State>& state_vec, const ColorARGB& color,
-      visualization_msgs::MarkerArray* marker_arr) {
-    visualization_msgs::Marker traj_mk;
-    traj_mk.type = visualization_msgs::Marker::LINE_STRIP;
-    traj_mk.action = visualization_msgs::Marker::MODIFY;
+      visualization_msgs::msg::MarkerArray* marker_arr) {
+    visualization_msgs::msg::Marker traj_mk;
+    traj_mk.type = visualization_msgs::msg::Marker::LINE_STRIP;
+    traj_mk.action = visualization_msgs::msg::Marker::MODIFY;
     FillScaleColorInMarker(Vec3f(0.05, 0.05, 0.05), color, &traj_mk);
     for (auto& state : state_vec) {
-      geometry_msgs::Point point;
+      geometry_msgs::msg::Point point;
       ConvertVectorToPoint<2>(state.vec_position, &point);
       traj_mk.points.push_back(point);
     }
@@ -256,7 +260,7 @@ class VisualizationUtil {
    */
   static ErrorType FillScaleColorInMarker(const Vec3f scale,
                                           const ColorARGB color,
-                                          visualization_msgs::Marker* marker) {
+                                          visualization_msgs::msg::Marker* marker) {
     // default pose at origin
     marker->pose.position.x = 0.0;
     marker->pose.position.y = 0.0;
@@ -279,7 +283,7 @@ class VisualizationUtil {
    * @return ErrorType
    */
   static ErrorType FillColorInMarker(const ColorARGB& color,
-                                     visualization_msgs::Marker* marker) {
+                                     visualization_msgs::msg::Marker* marker) {
     marker->color.a = color.a;
     marker->color.r = color.r;
     marker->color.g = color.g;
@@ -295,7 +299,7 @@ class VisualizationUtil {
    * @return ErrorType
    */
   static ErrorType FillScaleInMarker(const Vec3f scale,
-                                     visualization_msgs::Marker* marker) {
+                                     visualization_msgs::msg::Marker* marker) {
     marker->scale.x = scale(0);
     marker->scale.y = scale(1);
     marker->scale.z = scale(2);
@@ -310,12 +314,12 @@ class VisualizationUtil {
    * @return ErrorType
    */
   static ErrorType FillGradientColorInMarker(
-      const bool if_ascending, visualization_msgs::Marker* marker) {
+      const bool if_ascending, visualization_msgs::msg::Marker* marker) {
     int num = marker->points.size();
     for (int i = 0; i < num; ++i) {
       double k = (double)i / (double)num;
       common::ColorARGB c = common::GetJetColorByValue(k, 1.0, 0.0);
-      std_msgs::ColorRGBA c_ros;
+      std_msgs::msg::ColorRGBA c_ros;
       c_ros.a = c.a;
       c_ros.r = c.r;
       c_ros.g = c.g;
@@ -335,8 +339,8 @@ class VisualizationUtil {
    * @return ErrorType
    */
   static ErrorType FillHeaderIdInMarkerArray(
-      const ros::Time time_stamp, const std::string frame_id,
-      const int last_array_size, visualization_msgs::MarkerArray* marker_arr) {
+      const rclcpp::Time time_stamp, const std::string frame_id,
+      const int last_array_size, visualization_msgs::msg::MarkerArray* marker_arr) {
     int marker_id = 0;
     for (auto& mk : marker_arr->markers) {
       mk.id = marker_id;
@@ -345,10 +349,10 @@ class VisualizationUtil {
       marker_id++;
     }
 
-    visualization_msgs::Marker delete_mk;
+    visualization_msgs::msg::Marker delete_mk;
     delete_mk.header.stamp = time_stamp;
     delete_mk.header.frame_id = frame_id;
-    delete_mk.action = visualization_msgs::Marker::DELETE;
+    delete_mk.action = visualization_msgs::msg::Marker::DELETE;
     for (int i = marker_id; i < last_array_size; i++) {
       delete_mk.id = i;
       marker_arr->markers.push_back(delete_mk);
@@ -364,7 +368,7 @@ class VisualizationUtil {
    * @return ErrorType
    */
   static ErrorType FillStampInMarkerArray(
-      const ros::Time time_stamp, visualization_msgs::MarkerArray* marker_arr) {
+      const rclcpp::Time time_stamp, visualization_msgs::msg::MarkerArray* marker_arr) {
     for (auto& mk : marker_arr->markers) {
       mk.header.stamp = time_stamp;
     }
@@ -379,8 +383,8 @@ class VisualizationUtil {
    * @return ErrorType
    */
   static ErrorType FillLifeTimeInMarkerArray(
-      const ros::Duration duration,
-      visualization_msgs::MarkerArray* marker_arr) {
+      const rclcpp::Duration duration,
+      visualization_msgs::msg::MarkerArray* marker_arr) {
     for (auto& mk : marker_arr->markers) {
       mk.lifetime = duration;
     }
@@ -395,13 +399,13 @@ class VisualizationUtil {
    * @return ErrorType
    */
   static ErrorType GetRosPoseFrom3DofState(const Vec3f& state,
-                                           geometry_msgs::Pose* p_pose) {
+                                           geometry_msgs::msg::Pose* p_pose) {
     p_pose->position.x = state(0);
     p_pose->position.y = state(1);
     p_pose->position.z = 0.0;
 
-    tf::Quaternion q;
-    q = tf::createQuaternionFromRPY(0.0, 0.0, state(2));
+    tf2::Quaternion q;
+    q.setRPY(0.0, 0.0, state(2));
 
     p_pose->orientation.x = q.x();
     p_pose->orientation.y = q.y();
@@ -418,10 +422,10 @@ class VisualizationUtil {
    * @return ErrorType
    */
   static ErrorType GetRosPoseStampedFromVec3d(
-      const Vec3f& state, geometry_msgs::PoseStamped* p_pose_stamped) {
+      const Vec3f& state, geometry_msgs::msg::PoseStamped* p_pose_stamped) {
     p_pose_stamped->header.frame_id = "map";
-    p_pose_stamped->header.stamp = ros::Time::now();
-    geometry_msgs::Pose pose;
+    p_pose_stamped->header.stamp = rclcpp::Clock().now();
+    geometry_msgs::msg::Pose pose;
     GetRosPoseFrom3DofState(state, &pose);
     p_pose_stamped->pose = pose;
     return kSuccess;
@@ -436,11 +440,11 @@ class VisualizationUtil {
    */
   static ErrorType GetRosPoseArrayFromState3dVector(
       const std::vector<Vec3f>& states,
-      geometry_msgs::PoseArray* p_pose_array) {
+      geometry_msgs::msg::PoseArray* p_pose_array) {
     p_pose_array->header.frame_id = "map";
-    p_pose_array->header.stamp = ros::Time::now();
+    p_pose_array->header.stamp = rclcpp::Clock().now();
     for (const auto& state : states) {
-      geometry_msgs::Pose pose;
+      geometry_msgs::msg::Pose pose;
       GetRosPoseFrom3DofState(state, &pose);
       p_pose_array->poses.push_back(pose);
     }
@@ -455,12 +459,12 @@ class VisualizationUtil {
    * @return ErrorType
    */
   static ErrorType GetRosPointCloudFrom3DofStateVector(
-      const std::vector<Vec3f>& states, sensor_msgs::PointCloud* p_pc) {
+      const std::vector<Vec3f>& states, sensor_msgs::msg::PointCloud* p_pc) {
     p_pc->header.frame_id = "map";
-    p_pc->header.stamp = ros::Time::now();
+    p_pc->header.stamp = rclcpp::Clock().now();
     for (const auto& state : states) {
       Vec2f vec(state(0), state(1));
-      geometry_msgs::Point32 pt;
+      geometry_msgs::msg::Point32 pt;
       ConvertVectorToPoint32<2>(vec, &pt);
       p_pc->points.push_back(pt);
     }
@@ -475,9 +479,9 @@ class VisualizationUtil {
    * @return ErrorType
    */
   static ErrorType GetRosPointCloudFromCircleArc(
-      const CircleArc& arc, sensor_msgs::PointCloud* p_pc) {
+      const CircleArc& arc, sensor_msgs::msg::PointCloud* p_pc) {
     p_pc->header.frame_id = "map";
-    p_pc->header.stamp = ros::Time::now();
+    p_pc->header.stamp = rclcpp::Clock().now();
     std::vector<Vec3f> states;
     arc.GetSampledStates(0.2, &states);
     GetRosPointCloudFrom3DofStateVector(states, p_pc);
@@ -492,9 +496,9 @@ class VisualizationUtil {
    * @return ErrorType
    */
   static ErrorType GetRosPointCloudFromCircleArcBranch(
-      const CircleArcBranch& arc_branch, sensor_msgs::PointCloud* p_pc) {
+      const CircleArcBranch& arc_branch, sensor_msgs::msg::PointCloud* p_pc) {
     p_pc->header.frame_id = "map";
-    p_pc->header.stamp = ros::Time::now();
+    p_pc->header.stamp = rclcpp::Clock().now();
     for (const auto& arc : arc_branch.circle_arc_vec()) {
       GetRosPointCloudFromCircleArc(arc, p_pc);
     }
@@ -510,12 +514,12 @@ class VisualizationUtil {
    */
   static ErrorType GetRosPointCloudFromPointList(
       const std::vector<common::Point>& point_list,
-      sensor_msgs::PointCloud* p_pc) {
+      sensor_msgs::msg::PointCloud* p_pc) {
     p_pc->header.frame_id = "map";
-    p_pc->header.stamp = ros::Time::now();
+    p_pc->header.stamp = rclcpp::Clock().now();
 
     for (const auto& p : point_list) {
-      geometry_msgs::Point32 pt;
+      geometry_msgs::msg::Point32 pt;
       pt.x = p.x;
       pt.y = p.y;
       pt.z = p.z;
@@ -537,9 +541,9 @@ class VisualizationUtil {
    */
   static ErrorType GetRosMarkerSphereUsingPoint(
       const Vec3f& pt, const ColorARGB& color, const Vec3f& scale,
-      const int& id, visualization_msgs::Marker* p_marker) {
-    p_marker->type = visualization_msgs::Marker::SPHERE;
-    p_marker->action = visualization_msgs::Marker::MODIFY;
+      const int& id, visualization_msgs::msg::Marker* p_marker) {
+    p_marker->type = visualization_msgs::msg::Marker::SPHERE;
+    p_marker->action = visualization_msgs::msg::Marker::MODIFY;
     p_marker->id = id;
     FillColorInMarker(color, p_marker);
     FillScaleInMarker(scale, p_marker);
@@ -560,9 +564,9 @@ class VisualizationUtil {
    */
   static ErrorType GetRosMarkerCylinderUsingCircle(
       const Circle& circle, const ColorARGB& color, const int& id,
-      visualization_msgs::Marker* p_marker) {
-    p_marker->type = visualization_msgs::Marker::CYLINDER;
-    p_marker->action = visualization_msgs::Marker::MODIFY;
+      visualization_msgs::msg::Marker* p_marker) {
+    p_marker->type = visualization_msgs::msg::Marker::CYLINDER;
+    p_marker->action = visualization_msgs::msg::Marker::MODIFY;
     p_marker->id = id;
     FillColorInMarker(color, p_marker);
     p_marker->scale.x = circle.radius * 2;
@@ -586,9 +590,9 @@ class VisualizationUtil {
    */
   static ErrorType GetRosMarkerCylinderUsingPoint(
       const Point& pt, const Vec3f& scale, const ColorARGB& color,
-      const int& id, visualization_msgs::Marker* p_marker) {
-    p_marker->type = visualization_msgs::Marker::CYLINDER;
-    p_marker->action = visualization_msgs::Marker::MODIFY;
+      const int& id, visualization_msgs::msg::Marker* p_marker) {
+    p_marker->type = visualization_msgs::msg::Marker::CYLINDER;
+    p_marker->action = visualization_msgs::msg::Marker::MODIFY;
     p_marker->id = id;
     FillColorInMarker(color, p_marker);
     FillScaleInMarker(scale, p_marker);
@@ -605,16 +609,17 @@ class VisualizationUtil {
    * @param p_state
    * @return ErrorType
    */
-  static ErrorType Get3DofStateFromRosPose(const geometry_msgs::Pose& pose,
+  static ErrorType Get3DofStateFromRosPose(const geometry_msgs::msg::Pose& pose,
                                            Vec3f* p_state) {
     (*p_state)(0) = pose.position.x;
     (*p_state)(1) = pose.position.y;
-    // the incoming geometry_msgs::Quaternion is transformed to a tf::Quaterion
-    tf::Quaternion q;
-    tf::quaternionMsgToTF(pose.orientation, q);
-    // the tf::Quaternion has a method to acess roll pitch and yaw
+    // the incoming geometry_msgs::Quaternion is transformed to a tf2::Quaterion
+    tf2::Quaternion q;
+    // tf2::fromMsg(pose.orientation, q);
+    tf2::fromMsg(pose.orientation, q);
+    // the tf2::Quaternion has a method to acess roll pitch and yaw
     double roll, pitch, yaw;
-    tf::Matrix3x3(q).getRPY(roll, pitch, yaw);
+    tf2::Matrix3x3(q).getRPY(roll, pitch, yaw);
     (*p_state)(2) = yaw;
     return kSuccess;
   }
@@ -630,13 +635,13 @@ class VisualizationUtil {
    */
   static ErrorType GetRosMarkerCubeUsingOrientedBoundingBox2D(
       const OrientedBoundingBox2D& obb, const ColorARGB& color,
-      const decimal_t& scale_z, visualization_msgs::Marker* p_marker) {
-    p_marker->type = visualization_msgs::Marker::CUBE;
-    p_marker->action = visualization_msgs::Marker::MODIFY;
+      const decimal_t& scale_z, visualization_msgs::msg::Marker* p_marker) {
+    p_marker->type = visualization_msgs::msg::Marker::CUBE;
+    p_marker->action = visualization_msgs::msg::Marker::MODIFY;
 
     Vec3f scale(obb.length, obb.width, scale_z);
     FillScaleColorInMarker(scale, color, p_marker);
-    geometry_msgs::Pose obb_pose;
+    geometry_msgs::msg::Pose obb_pose;
     GetRosPoseFrom3DofState(Vec3f(obb.x, obb.y, obb.angle), &obb_pose);
     p_marker->pose = obb_pose;
     return kSuccess;
@@ -656,13 +661,13 @@ class VisualizationUtil {
   static ErrorType GetRosMarkerCubeUsingOrientedBoundingBox2DWithOffsetZ(
       const OrientedBoundingBox2D& obb, const decimal_t offset_z,
       const ColorARGB& color, const decimal_t& scale_z,
-      visualization_msgs::Marker* p_marker) {
-    p_marker->type = visualization_msgs::Marker::CUBE;
-    p_marker->action = visualization_msgs::Marker::MODIFY;
+      visualization_msgs::msg::Marker* p_marker) {
+    p_marker->type = visualization_msgs::msg::Marker::CUBE;
+    p_marker->action = visualization_msgs::msg::Marker::MODIFY;
 
     Vec3f scale(obb.length, obb.width, scale_z);
     FillScaleColorInMarker(scale, color, p_marker);
-    geometry_msgs::Pose obb_pose;
+    geometry_msgs::msg::Pose obb_pose;
     GetRosPoseFrom3DofState(Vec3f(obb.x, obb.y, obb.angle), &obb_pose);
     obb_pose.position.z = offset_z;
     p_marker->pose = obb_pose;
@@ -679,9 +684,9 @@ class VisualizationUtil {
    */
   static ErrorType GetRosMarkerCubeUsingAxisAlignedBoundingBox3D(
       const AxisAlignedBoundingBoxND<3>& aabb, const ColorARGB& color,
-      visualization_msgs::Marker* p_marker) {
-    p_marker->type = visualization_msgs::Marker::CUBE;
-    p_marker->action = visualization_msgs::Marker::MODIFY;
+      visualization_msgs::msg::Marker* p_marker) {
+    p_marker->type = visualization_msgs::msg::Marker::CUBE;
+    p_marker->action = visualization_msgs::msg::Marker::MODIFY;
 
     Vec3f scale(aabb.len[0], aabb.len[1], aabb.len[2]);
     FillScaleColorInMarker(scale, color, p_marker);
@@ -702,9 +707,9 @@ class VisualizationUtil {
    */
   static ErrorType GetRosMarkerCubeUsingAxisAlignedCube3D(
       const AxisAlignedCubeNd<int, 3>& aabb, const ColorARGB& color,
-      visualization_msgs::Marker* p_marker) {
-    p_marker->type = visualization_msgs::Marker::CUBE;
-    p_marker->action = visualization_msgs::Marker::MODIFY;
+      visualization_msgs::msg::Marker* p_marker) {
+    p_marker->type = visualization_msgs::msg::Marker::CUBE;
+    p_marker->action = visualization_msgs::msg::Marker::MODIFY;
 
     decimal_t x_len = aabb.upper_bound[0] - aabb.lower_bound[0];
     decimal_t y_len = aabb.upper_bound[1] - aabb.lower_bound[1];
@@ -732,23 +737,27 @@ class VisualizationUtil {
    */
   static ErrorType GetRosMarkerMeshUsingOrientedBoundingBox2D(
       const OrientedBoundingBox2D& obb, const ColorARGB& color,
-      visualization_msgs::Marker* p_marker) {
-    p_marker->type = visualization_msgs::Marker::MESH_RESOURCE;
-    p_marker->action = visualization_msgs::Marker::MODIFY;
+      visualization_msgs::msg::Marker* p_marker) {
+    p_marker->type = visualization_msgs::msg::Marker::MESH_RESOURCE;
+    p_marker->action = visualization_msgs::msg::Marker::MODIFY;
     p_marker->mesh_resource = "package://common/materials/bmw_x5.dae";
     p_marker->mesh_use_embedded_materials = true;
     FillScaleInMarker(Vec3f(1.0, 1.0, 1.0), p_marker);
     FillColorInMarker(color, p_marker);
-    geometry_msgs::Pose obb_pose;
+    geometry_msgs::msg::Pose obb_pose;
     GetRosPoseFrom3DofState(Vec3f(obb.x, obb.y, obb.angle), &obb_pose);
     // obb_pose.position.z = -0.4;
     p_marker->pose = obb_pose;
-    tf::Quaternion q(0.0, -0.7071, -0.7071, 0.0);
-    quaternionTFToMsg(
-        tf::Quaternion(obb_pose.orientation.x, obb_pose.orientation.y,
-                       obb_pose.orientation.z, obb_pose.orientation.w) *
-            q,
-        p_marker->pose.orientation);
+    tf2::Quaternion q(0.0, -0.7071, -0.7071, 0.0);
+    // tf2::fromMsg(
+    //     tf2::Quaternion(obb_pose.orientation.x, obb_pose.orientation.y,
+    //                     obb_pose.orientation.z, obb_pose.orientation.w) *
+    //         q,
+    //     p_marker->pose.orientation);
+    p_marker->pose.orientation = tf2::toMsg(
+        tf2::Quaternion(obb_pose.orientation.x, obb_pose.orientation.y,
+                        obb_pose.orientation.z, obb_pose.orientation.w) *
+        q);
     return kSuccess;
   }
 
@@ -763,12 +772,12 @@ class VisualizationUtil {
    */
   static ErrorType GetRosMarkerMeshConeUsingPosition(
       const Vec3f& pos, const ColorARGB& color, const int& id,
-      visualization_msgs::Marker* p_marker) {
+      visualization_msgs::msg::Marker* p_marker) {
     p_marker->header.frame_id = "map";
-    p_marker->header.stamp = ros::Time::now();
+    p_marker->header.stamp = rclcpp::Clock().now();
     p_marker->id = id;
-    p_marker->type = visualization_msgs::Marker::MESH_RESOURCE;
-    p_marker->action = visualization_msgs::Marker::MODIFY;
+    p_marker->type = visualization_msgs::msg::Marker::MESH_RESOURCE;
+    p_marker->action = visualization_msgs::msg::Marker::MODIFY;
     p_marker->mesh_resource = "package://common/materials/traffic_cone.dae";
     // p_marker->mesh_use_embedded_materials = true;
     FillScaleInMarker(Vec3f(2, 2, 2), p_marker);
@@ -776,8 +785,9 @@ class VisualizationUtil {
     p_marker->pose.position.x = pos(0);
     p_marker->pose.position.y = pos(1);
     p_marker->pose.position.z = pos(2);
-    tf::Quaternion q(0.0, -0.7071, -0.7071, 0.0);
-    quaternionTFToMsg(q, p_marker->pose.orientation);
+    tf2::Quaternion q(0.0, -0.7071, -0.7071, 0.0);
+    // tf2::fromMsg(q, p_marker->pose.orientation);
+    p_marker->pose.orientation = tf2::toMsg(q);
     return kSuccess;
   }
 
@@ -793,31 +803,31 @@ class VisualizationUtil {
    */
   static ErrorType GetRosMarkerMeshHexagonSignUsingPosition(
       const Vec3f& state, const decimal_t& z_offset, const ColorARGB& color,
-      const int& id, visualization_msgs::Marker* p_marker) {
+      const int& id, visualization_msgs::msg::Marker* p_marker) {
     p_marker->header.frame_id = "map";
-    p_marker->header.stamp = ros::Time::now();
+    p_marker->header.stamp = rclcpp::Clock().now();
     p_marker->id = id;
-    p_marker->type = visualization_msgs::Marker::MESH_RESOURCE;
-    p_marker->action = visualization_msgs::Marker::MODIFY;
+    p_marker->type = visualization_msgs::msg::Marker::MESH_RESOURCE;
+    p_marker->action = visualization_msgs::msg::Marker::MODIFY;
     p_marker->mesh_resource = "package://common/materials/hexagon_sign.dae";
     // p_marker->mesh_use_embedded_materials = true;
     FillScaleInMarker(Vec3f(0.5, 0.5, 0.5), p_marker);
     FillColorInMarker(color, p_marker);
-    geometry_msgs::Pose pose;
+    geometry_msgs::msg::Pose pose;
     GetRosPoseFrom3DofState(state, &pose);
     pose.position.z = z_offset;
     p_marker->pose = pose;
-    // tf::Quaternion q(0.0, -0.7071, -0.7071, 0.0);
-    // quaternionTFToMsg(q, p_marker->pose.orientation);
+    // tf2::Quaternion q(0.0, -0.7071, -0.7071, 0.0);
+    // tf2::fromMsg(q, p_marker->pose.orientation);
     return kSuccess;
   }
 
   static ErrorType GetRosMarkerArrowUsingOriginAndVector(
-      const Vec3f& origin, const Vec3f& vec, visualization_msgs::Marker* p_mk) {
-    p_mk->type = visualization_msgs::Marker::ARROW;
-    p_mk->action = visualization_msgs::Marker::MODIFY;
+      const Vec3f& origin, const Vec3f& vec, visualization_msgs::msg::Marker* p_mk) {
+    p_mk->type = visualization_msgs::msg::Marker::ARROW;
+    p_mk->action = visualization_msgs::msg::Marker::MODIFY;
 
-    geometry_msgs::Point pt0, pt1;
+    geometry_msgs::msg::Point pt0, pt1;
     pt0.x = origin(0);
     pt0.y = origin(1);
     pt0.z = origin(2);
@@ -841,10 +851,10 @@ class VisualizationUtil {
    * @return ErrorType
    */
   static ErrorType GetRosMarkerArrowUsingPoseAndNorm(
-      const geometry_msgs::Pose& pose, const double& norm,
-      const ColorARGB& color, visualization_msgs::Marker* p_marker) {
-    p_marker->type = visualization_msgs::Marker::ARROW;
-    p_marker->action = visualization_msgs::Marker::MODIFY;
+      const geometry_msgs::msg::Pose& pose, const double& norm,
+      const ColorARGB& color, visualization_msgs::msg::Marker* p_marker) {
+    p_marker->type = visualization_msgs::msg::Marker::ARROW;
+    p_marker->action = visualization_msgs::msg::Marker::MODIFY;
     p_marker->pose = pose;
     p_marker->scale.x = std::max(0.15, norm);  // 0.0 will cause rviz warning
     p_marker->scale.y = 0.15;
@@ -865,12 +875,12 @@ class VisualizationUtil {
    */
   static ErrorType GetRosMarkerLineStripUsing2DofVec(
       const vec_E<Vec2f>& path, const ColorARGB& color, const Vec3f& scale,
-      const int& id, visualization_msgs::Marker* p_marker) {
-    p_marker->type = visualization_msgs::Marker::LINE_STRIP;
-    p_marker->action = visualization_msgs::Marker::MODIFY;
+      const int& id, visualization_msgs::msg::Marker* p_marker) {
+    p_marker->type = visualization_msgs::msg::Marker::LINE_STRIP;
+    p_marker->action = visualization_msgs::msg::Marker::MODIFY;
     p_marker->id = id;
     for (const auto& state : path) {
-      geometry_msgs::Point pt;
+      geometry_msgs::msg::Point pt;
       pt.x = state(0);
       pt.y = state(1);
       pt.z = 0.0;
@@ -894,12 +904,12 @@ class VisualizationUtil {
    */
   static ErrorType GetRosMarkerLineStripUsing2DofVecWithOffsetZ(
       const vec_E<Vec2f>& path, const ColorARGB& color, const Vec3f& scale,
-      const decimal_t& z, const int& id, visualization_msgs::Marker* p_marker) {
-    p_marker->type = visualization_msgs::Marker::LINE_STRIP;
-    p_marker->action = visualization_msgs::Marker::MODIFY;
+      const decimal_t& z, const int& id, visualization_msgs::msg::Marker* p_marker) {
+    p_marker->type = visualization_msgs::msg::Marker::LINE_STRIP;
+    p_marker->action = visualization_msgs::msg::Marker::MODIFY;
     p_marker->id = id;
     for (const auto& state : path) {
-      geometry_msgs::Point pt;
+      geometry_msgs::msg::Point pt;
       pt.x = state(0);
       pt.y = state(1);
       pt.z = z;
@@ -924,12 +934,12 @@ class VisualizationUtil {
   static ErrorType GetRosMarkerLineStripUsing3DofStateVec(
       const std::vector<Vec3f>& path, const decimal_t z_offset,
       const ColorARGB& color, const Vec3f& scale, const int& id,
-      visualization_msgs::Marker* p_marker) {
-    p_marker->type = visualization_msgs::Marker::LINE_STRIP;
-    p_marker->action = visualization_msgs::Marker::MODIFY;
+      visualization_msgs::msg::Marker* p_marker) {
+    p_marker->type = visualization_msgs::msg::Marker::LINE_STRIP;
+    p_marker->action = visualization_msgs::msg::Marker::MODIFY;
     p_marker->id = id;
     for (const auto& state : path) {
-      geometry_msgs::Point pt;
+      geometry_msgs::msg::Point pt;
       pt.x = state(0);
       pt.y = state(1);
       pt.z = z_offset;
@@ -953,9 +963,9 @@ class VisualizationUtil {
    */
   static ErrorType GetRosMarkerTextUsingPositionAndString(
       const Vec3f& pos, const std::string& str, const ColorARGB& color,
-      const Vec3f& scale, const int& id, visualization_msgs::Marker* p_marker) {
-    p_marker->type = visualization_msgs::Marker::TEXT_VIEW_FACING;
-    p_marker->action = visualization_msgs::Marker::MODIFY;
+      const Vec3f& scale, const int& id, visualization_msgs::msg::Marker* p_marker) {
+    p_marker->type = visualization_msgs::msg::Marker::TEXT_VIEW_FACING;
+    p_marker->action = visualization_msgs::msg::Marker::MODIFY;
     p_marker->id = id;
     p_marker->pose.position.x = pos(0);
     p_marker->pose.position.y = pos(1);
@@ -980,12 +990,12 @@ class VisualizationUtil {
   static ErrorType GetRosMarkerLineStripGradientColorUsing3DofStateVec(
       const std::vector<Vec3f>& path, const Vec3f& scale,
       const decimal_t& offset_z, const int& id,
-      visualization_msgs::Marker* p_marker) {
-    p_marker->type = visualization_msgs::Marker::LINE_STRIP;
-    p_marker->action = visualization_msgs::Marker::MODIFY;
+      visualization_msgs::msg::Marker* p_marker) {
+    p_marker->type = visualization_msgs::msg::Marker::LINE_STRIP;
+    p_marker->action = visualization_msgs::msg::Marker::MODIFY;
     p_marker->id = id;
     for (const auto& state : path) {
-      geometry_msgs::Point pt;
+      geometry_msgs::msg::Point pt;
       pt.x = state(0);
       pt.y = state(1);
       pt.z = offset_z;
@@ -1009,13 +1019,13 @@ class VisualizationUtil {
   static ErrorType GetRosMarkerLineStripUsingPoints(
       const std::vector<Point> points, const Vec3f& scale,
       const ColorARGB& color, const int& id,
-      visualization_msgs::Marker* p_marker) {
-    p_marker->type = visualization_msgs::Marker::LINE_STRIP;
-    p_marker->action = visualization_msgs::Marker::MODIFY;
+      visualization_msgs::msg::Marker* p_marker) {
+    p_marker->type = visualization_msgs::msg::Marker::LINE_STRIP;
+    p_marker->action = visualization_msgs::msg::Marker::MODIFY;
     p_marker->id = id;
     FillScaleColorInMarker(scale, color, p_marker);
     for (const auto& p : points) {
-      geometry_msgs::Point point;
+      geometry_msgs::msg::Point point;
       point.x = p.x;
       point.y = p.y;
       point.z = p.z;
@@ -1038,10 +1048,10 @@ class VisualizationUtil {
   static ErrorType GetRosMarkerArrayUsingVehicle(
       const Vehicle& vehicle, const ColorARGB& color_obb,
       const ColorARGB& color_vel_vec, const ColorARGB& color_steer,
-      const int& id, visualization_msgs::MarkerArray* p_marker_array) {
-    ros::Time ros_time = ros::Time::now();
+      const int& id, visualization_msgs::msg::MarkerArray* p_marker_array) {
+    rclcpp::Time ros_time = rclcpp::Clock().now();
     // OBB
-    visualization_msgs::Marker obb_marker;
+    visualization_msgs::msg::Marker obb_marker;
     obb_marker.header.frame_id = "map";
     obb_marker.header.stamp = ros_time;
     obb_marker.id = id;
@@ -1052,7 +1062,7 @@ class VisualizationUtil {
     obb_marker.pose.position.z = 0.75;
 
     // Vehicle model
-    visualization_msgs::Marker mesh_marker;
+    visualization_msgs::msg::Marker mesh_marker;
     mesh_marker.header.frame_id = "map";
     mesh_marker.header.stamp = ros_time;
     mesh_marker.id = id + 1;
@@ -1060,19 +1070,19 @@ class VisualizationUtil {
     GetRosMarkerMeshUsingOrientedBoundingBox2D(obb, color_obb, &mesh_marker);
 
     // Velocity vector
-    visualization_msgs::Marker vel_vec_marker;
+    visualization_msgs::msg::Marker vel_vec_marker;
     vel_vec_marker.header.frame_id = "map";
     vel_vec_marker.header.stamp = ros_time;
     vel_vec_marker.id = id + 2;
     // vel_vec_marker.ns = std::string("vel_vec");
-    geometry_msgs::Pose pose;
+    geometry_msgs::msg::Pose pose;
     GetRosPoseFrom3DofState(vehicle.Ret3DofState(), &pose);
     pose.position.z = 0.8;
     GetRosMarkerArrowUsingPoseAndNorm(pose, vehicle.state().velocity,
                                       color_vel_vec, &vel_vec_marker);
 
     // Velocity text
-    visualization_msgs::Marker vel_text_marker;
+    visualization_msgs::msg::Marker vel_text_marker;
     vel_text_marker.header.frame_id = "map";
     vel_text_marker.header.stamp = ros_time;
     auto pos = vehicle.Ret3DofState();
@@ -1094,7 +1104,7 @@ class VisualizationUtil {
 
     // Steering angle
     double arc_length = 10;
-    visualization_msgs::Marker steering_angle_marker;
+    visualization_msgs::msg::Marker steering_angle_marker;
     steering_angle_marker.header.frame_id = "map";
     steering_angle_marker.header.stamp = ros_time;
     Vec3f state(vehicle.state().vec_position(0),
@@ -1108,7 +1118,7 @@ class VisualizationUtil {
                                            &steering_angle_marker);
     // steering_angle_marker.ns = std::string("steer_p");
 
-    visualization_msgs::Marker steering_angle_marker_reverse;
+    visualization_msgs::msg::Marker steering_angle_marker_reverse;
     steering_angle_marker_reverse.header.frame_id = "map";
     steering_angle_marker_reverse.header.stamp = ros_time;
     Vec3f state_reverse = state;
@@ -1122,7 +1132,7 @@ class VisualizationUtil {
                                            &steering_angle_marker_reverse);
     // steering_angle_marker_reverse.ns = std::string("steer_n");
 
-    visualization_msgs::Marker horizontal_marker;
+    visualization_msgs::msg::Marker horizontal_marker;
     horizontal_marker.header.frame_id = "map";
     horizontal_marker.header.stamp = ros_time;
     auto state3df = vehicle.Ret3DofState();
@@ -1160,9 +1170,9 @@ class VisualizationUtil {
    * @return ErrorType
    */
   static ErrorType GetRosMarkerUsingCircleObstacle(
-      const CircleObstacle& obs, visualization_msgs::Marker* p_marker) {
+      const CircleObstacle& obs, visualization_msgs::msg::Marker* p_marker) {
     p_marker->header.frame_id = "map";
-    p_marker->header.stamp = ros::Time::now();
+    p_marker->header.stamp = rclcpp::Clock().now();
     GetRosMarkerCylinderUsingCircle(obs.circle, ColorARGB(0.5, 1.0, 1.0, 1.0),
                                     obs.id, p_marker);
     return kSuccess;
@@ -1178,14 +1188,14 @@ class VisualizationUtil {
    */
   static ErrorType GetRosMarkerUsingPolygonObstacle(
       const PolygonObstacle& obs, const int& id,
-      visualization_msgs::Marker* p_marker) {
+      visualization_msgs::msg::Marker* p_marker) {
     std::vector<Point> points = obs.polygon.points;
     points.push_back(*(points.begin()));
     for (auto& p : points) {
       p.z = -0.2;
     }
     p_marker->header.frame_id = "map";
-    p_marker->header.stamp = ros::Time::now();
+    p_marker->header.stamp = rclcpp::Clock().now();
     GetRosMarkerLineStripUsingPoints(
         points, Vec3f(0.2, 0, 0), ColorARGB(1.0, 0.7, 0.7, 0.7), id, p_marker);
     return kSuccess;
@@ -1200,9 +1210,9 @@ class VisualizationUtil {
    */
   static ErrorType GetRosMarkerUsingObstacleSet(
       const ObstacleSet& obstacles,
-      visualization_msgs::MarkerArray* p_marker_array) {
+      visualization_msgs::msg::MarkerArray* p_marker_array) {
     for (const auto& p_obs : obstacles.obs_circle) {
-      visualization_msgs::Marker obs_marker;
+      visualization_msgs::msg::Marker obs_marker;
       GetRosMarkerUsingCircleObstacle(p_obs.second, &obs_marker);
       p_marker_array->markers.push_back(obs_marker);
     }
@@ -1210,7 +1220,7 @@ class VisualizationUtil {
     for (const auto& p_obs : obstacles.obs_polygon) {
       switch (p_obs.second.type) {
         case 0: {
-          visualization_msgs::Marker obs_marker;
+          visualization_msgs::msg::Marker obs_marker;
           GetRosMarkerUsingPolygonObstacle(p_obs.second, id_cnt, &obs_marker);
           p_marker_array->markers.push_back(obs_marker);
           ++id_cnt;
@@ -1218,7 +1228,7 @@ class VisualizationUtil {
         }
         case 1: {
           for (const auto& pt : p_obs.second.polygon.points) {
-            visualization_msgs::Marker obs_marker;
+            visualization_msgs::msg::Marker obs_marker;
             Vec3f pos(pt.x, pt.y, 0.4);
             GetRosMarkerMeshConeUsingPosition(pos, cmap.at("yellow"), id_cnt,
                                               &obs_marker);
@@ -1243,16 +1253,16 @@ class VisualizationUtil {
    */
   static ErrorType GetRosMarkerArrUsingSemanticBehavior(
       const SemanticBehavior& behavior,
-      visualization_msgs::MarkerArray* p_marker_array) {
+      visualization_msgs::msg::MarkerArray* p_marker_array) {
     // lane direction marker
     {
       if (behavior.ref_lane.IsValid()) {
-        visualization_msgs::Marker direction_mk;
-        direction_mk.header.stamp = ros::Time::now();
+        visualization_msgs::msg::Marker direction_mk;
+        direction_mk.header.stamp = rclcpp::Clock().now();
         direction_mk.header.frame_id = std::string("map");
         direction_mk.id = 0;
-        direction_mk.type = visualization_msgs::Marker::LINE_LIST;
-        direction_mk.action = visualization_msgs::Marker::MODIFY;
+        direction_mk.type = visualization_msgs::msg::Marker::LINE_LIST;
+        direction_mk.action = visualization_msgs::msg::Marker::MODIFY;
         decimal_t angle = 0.0;  // angle between horizontal line & direction
         if (behavior.lat_behavior == common::LateralBehavior::kLaneChangeLeft ||
             behavior.lat_behavior ==
@@ -1280,10 +1290,10 @@ class VisualizationUtil {
           Vecf<2> normal_vec;
           behavior.ref_lane.GetNormalVectorByArcLength(s, &normal_vec);
 
-          geometry_msgs::Point origin;
+          geometry_msgs::msg::Point origin;
           ConvertVectorToPoint<2>(pos, &origin);
           {
-            geometry_msgs::Point left_arrow;
+            geometry_msgs::msg::Point left_arrow;
             Vecf<2> left = pos + arrow_width / acos(angle) *
                                      rotate_vector_2d(normal_vec, angle);
             ConvertVectorToPoint<2>(left, &left_arrow);
@@ -1291,7 +1301,7 @@ class VisualizationUtil {
             direction_mk.points.push_back(left_arrow);
           }
           {
-            geometry_msgs::Point right_arrow;
+            geometry_msgs::msg::Point right_arrow;
             Vecf<2> right = pos + arrow_width / acos(angle) *
                                       rotate_vector_2d(-normal_vec, -angle);
             ConvertVectorToPoint<2>(right, &right_arrow);
@@ -1307,18 +1317,18 @@ class VisualizationUtil {
     {
       decimal_t sample_step = 1.0;
       if (behavior.ref_lane.IsValid()) {
-        visualization_msgs::Marker curvature_mk;
-        curvature_mk.header.stamp = ros::Time::now();
+        visualization_msgs::msg::Marker curvature_mk;
+        curvature_mk.header.stamp = rclcpp::Clock().now();
         curvature_mk.header.frame_id = std::string("map");
         curvature_mk.id = 1;
-        curvature_mk.type = visualization_msgs::Marker::LINE_STRIP;
-        curvature_mk.action = visualization_msgs::Marker::MODIFY;
+        curvature_mk.type = visualization_msgs::msg::Marker::LINE_STRIP;
+        curvature_mk.action = visualization_msgs::msg::Marker::MODIFY;
         curvature_mk.scale.x = 0.2;
         for (decimal_t s = behavior.ref_lane.begin();
              s < behavior.ref_lane.end(); s += sample_step) {
           Vecf<2> pos;
           behavior.ref_lane.GetPositionByArcLength(s, &pos);
-          geometry_msgs::Point origin;
+          geometry_msgs::msg::Point origin;
           ConvertVectorToPoint<2>(pos, &origin);
           curvature_mk.points.push_back(origin);
 
@@ -1326,7 +1336,7 @@ class VisualizationUtil {
           behavior.ref_lane.GetCurvatureByArcLength(s, &c, &cc);
           common::ColorARGB color =
               common::GetJetColorByValue(fabs(c), 0.4, 0.0);
-          std_msgs::ColorRGBA c_ros;
+          std_msgs::msg::ColorRGBA c_ros;
           c_ros.a = color.a;
           c_ros.r = color.r;
           c_ros.g = color.g;
@@ -1362,13 +1372,13 @@ class VisualizationUtil {
             break;
         }
 
-        visualization_msgs::Marker lon_mk;
-        lon_mk.header.stamp = ros::Time::now();
+        visualization_msgs::msg::Marker lon_mk;
+        lon_mk.header.stamp = rclcpp::Clock().now();
         lon_mk.header.frame_id = std::string("map");
         lon_mk.id = 3;
-        lon_mk.type = visualization_msgs::Marker::ARROW;
-        lon_mk.action = visualization_msgs::Marker::MODIFY;
-        geometry_msgs::Point pt0, pt1;
+        lon_mk.type = visualization_msgs::msg::Marker::ARROW;
+        lon_mk.action = visualization_msgs::msg::Marker::MODIFY;
+        geometry_msgs::msg::Point pt0, pt1;
         pt0.x = behavior.state.vec_position(0);
         pt0.y = behavior.state.vec_position(1);
         pt0.z = 2.5;
@@ -1400,9 +1410,9 @@ class VisualizationUtil {
                              v.state().vec_position(1));
             pt.z = traj_z;
             points.push_back(pt);
-            visualization_msgs::Marker point_marker;
+            visualization_msgs::msg::Marker point_marker;
 
-            point_marker.header.stamp = ros::Time::now();
+            point_marker.header.stamp = rclcpp::Clock().now();
             point_marker.header.frame_id = std::string("map");
 
             common::VisualizationUtil::GetRosMarkerCylinderUsingPoint(
@@ -1410,8 +1420,8 @@ class VisualizationUtil {
                 &point_marker);
             p_marker_array->markers.push_back(point_marker);
           }
-          visualization_msgs::Marker line_marker;
-          line_marker.header.stamp = ros::Time::now();
+          visualization_msgs::msg::Marker line_marker;
+          line_marker.header.stamp = rclcpp::Clock().now();
           line_marker.header.frame_id = std::string("map");
           common::VisualizationUtil::GetRosMarkerLineStripUsingPoints(
               points, Vec3f(0.1, 0.1, 0.1), traj_color, ++cnt, &line_marker);
@@ -1424,24 +1434,24 @@ class VisualizationUtil {
   }
 
   /**
-   * @brief Convert GridMapND<T, 2> to nav_msgs::OccupancyGrid
+   * @brief Convert GridMapND<T, 2> to nav_msgs::msg::OccupancyGrid
    *
    * @tparam T Data type
    * @param GridMapND in type T
    * @param time_stamp ROS timestamp
-   * @param p_occ_grid Pointer of ROS nav_msgs::OccupancyGrid
+   * @param p_occ_grid Pointer of ROS nav_msgs::msg::OccupancyGrid
    * @return ErrorType
    */
   template <typename T>
   static ErrorType GetRosOccupancyGridUsingGripMap2D(
-      const GridMapND<T, 2>& grid_map, const ros::Time& time_stamp,
-      nav_msgs::OccupancyGrid* p_occ_grid) {
+      const GridMapND<T, 2>& grid_map, const rclcpp::Time& time_stamp,
+      nav_msgs::msg::OccupancyGrid* p_occ_grid) {
     p_occ_grid->header.frame_id = "map";
     p_occ_grid->header.stamp = time_stamp;
     p_occ_grid->info.height = grid_map.dims_size(0);
     p_occ_grid->info.width = grid_map.dims_size(1);
     p_occ_grid->info.resolution = grid_map.dims_resolution(0);
-    geometry_msgs::Pose origin;
+    geometry_msgs::msg::Pose origin;
     Vec3f origin_pose(grid_map.origin()[0], grid_map.origin()[1], 0.0);
     GetRosPoseFrom3DofState(origin_pose, &origin);
     p_occ_grid->info.origin = origin;
@@ -1466,16 +1476,16 @@ class VisualizationUtil {
    */
   template <typename T>
   static ErrorType GetRosMarkerCubeListUsingGripMap3D(
-      const GridMapND<T, 3>* p_grid_map, const ros::Time& time_stamp,
+      const GridMapND<T, 3>* p_grid_map, const rclcpp::Time& time_stamp,
       const std::string& frame_id, const Vec3f& pose,
-      visualization_msgs::Marker* p_marker) {
+      visualization_msgs::msg::Marker* p_marker) {
     p_marker->header.frame_id = frame_id;
     p_marker->header.stamp = time_stamp;
-    p_marker->type = visualization_msgs::Marker::CUBE_LIST;
-    p_marker->action = visualization_msgs::Marker::MODIFY;
+    p_marker->type = visualization_msgs::msg::Marker::CUBE_LIST;
+    p_marker->action = visualization_msgs::msg::Marker::MODIFY;
     p_marker->id = 0;
 
-    geometry_msgs::Pose pose_origin;
+    geometry_msgs::msg::Pose pose_origin;
     GetRosPoseFrom3DofState(pose, &pose_origin);
     p_marker->pose = pose_origin;
 
@@ -1503,13 +1513,13 @@ class VisualizationUtil {
       idx = p_grid_map->GetNDimIdxUsingMonoIdx(i);
       p_grid_map->GetGlobalPositionUsingCoordinate(idx, &p_w);
 
-      geometry_msgs::Point pt;
+      geometry_msgs::msg::Point pt;
       pt.x = p_w[0];
       pt.y = p_w[1];
       pt.z = p_w[2] - origin[2];
       p_marker->points.push_back(pt);
 
-      std_msgs::ColorRGBA clr_ros;
+      std_msgs::msg::ColorRGBA clr_ros;
       // ColorARGB clr = GetJetColorByValue(idx[2], z_max, 0);
       // clr_ros.a = 0.95;
       // clr_ros.r = clr.r;

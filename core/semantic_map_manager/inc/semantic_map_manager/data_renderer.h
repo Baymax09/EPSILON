@@ -13,7 +13,7 @@
 
 #include "common/basics/basics.h"
 #include "common/basics/semantics.h"
-#include "nanoflann/include/nanoflann.hpp"
+#include <nanoflann.hpp>
 #include "semantic_map_manager/semantic_map_manager.h"
 
 namespace semantic_map_manager {

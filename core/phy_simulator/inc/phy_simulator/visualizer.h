@@ -14,9 +14,15 @@
 #include <iostream>
 #include <vector>
 
-#include <ros/ros.h>
-#include <tf/tf.h>
-#include <tf/transform_broadcaster.h>
+#include "rclcpp/rclcpp.hpp"
+#include <tf2/LinearMath/Quaternion.h>
+#include <tf2/LinearMath/Matrix3x3.h>
+#include <tf2_ros/transform_broadcaster.h>
+
+#include <geometry_msgs/msg/quaternion.hpp>
+#include <geometry_msgs/msg/pose.hpp>
+// 必须在消息头文件之后
+#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 
 #include "common/basics/basics.h"
 #include "common/basics/semantics.h"
@@ -30,29 +36,32 @@ namespace phy_simulator {
 class Visualizer {
  public:
   Visualizer() {}
-  Visualizer(ros::NodeHandle nh);
+  Visualizer(rclcpp::Node::SharedPtr nh);
   ~Visualizer() {}
 
   void set_phy_sim(PhySimulation *p_phy_sim) { p_phy_sim_ = p_phy_sim; }
 
   void VisualizeData();
-  void VisualizeDataWithStamp(const ros::Time &stamp);
-  void SendTfWithStamp(const ros::Time &stamp);
+  void VisualizeDataWithStamp(const rclcpp::Time &stamp);
+  void SendTfWithStamp(const rclcpp::Time &stamp);
 
  private:
-  void VisualizeVehicleSet(const ros::Time &stamp,
+  void VisualizeVehicleSet(const rclcpp::Time &stamp,
                            const common::VehicleSet &vehicle_set);
-  void VisualizeLaneNet(const ros::Time &stamp,
+  void VisualizeLaneNet(const rclcpp::Time &stamp,
                         const common::LaneNet &lane_net);
-  void VisualizeObstacleSet(const ros::Time &stamp,
+  void VisualizeObstacleSet(const rclcpp::Time &stamp,
                             const common::ObstacleSet &Obstacle_set);
 
 
-  ros::NodeHandle nh_;
+  rclcpp::Node::SharedPtr nh_;
 
-  ros::Publisher vehicle_set_pub_;
-  ros::Publisher lane_net_pub_;
-  ros::Publisher obstacle_set_pub_;
+  rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr
+      vehicle_set_pub_;
+  rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr
+      lane_net_pub_;
+  rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr
+      obstacle_set_pub_;
 
   PhySimulation *p_phy_sim_;
 };  // Visualizer

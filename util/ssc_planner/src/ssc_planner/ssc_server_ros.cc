@@ -11,7 +11,7 @@
 
 namespace planning {
 
-SscPlannerServer::SscPlannerServer(ros::NodeHandle nh, int ego_id)
+SscPlannerServer::SscPlannerServer(rclcpp::Node::SharedPtr nh, int ego_id)
     : nh_(nh), work_rate_(20.0), ego_id_(ego_id) {
   p_input_smm_buff_ = new moodycamel::ReaderWriterQueue<SemanticMapManager>(
       config_.kInputBufferSize);
@@ -19,7 +19,7 @@ SscPlannerServer::SscPlannerServer(ros::NodeHandle nh, int ego_id)
   p_ssc_vis_ = new SscVisualizer(nh, ego_id);
 }
 
-SscPlannerServer::SscPlannerServer(ros::NodeHandle nh, double work_rate,
+SscPlannerServer::SscPlannerServer(rclcpp::Node::SharedPtr nh, double work_rate,
                                    int ego_id)
     : nh_(nh), work_rate_(work_rate), ego_id_(ego_id) {
   p_input_smm_buff_ = new moodycamel::ReaderWriterQueue<SemanticMapManager>(
@@ -34,17 +34,17 @@ void SscPlannerServer::PushSemanticMap(const SemanticMapManager& smm) {
 
 void SscPlannerServer::PublishData() {
   using common::VisualizationUtil;
-  auto current_time = ros::Time::now().toSec();
+  auto current_time = rclcpp::Clock().now().seconds();
   // smm visualization
   {
-    p_smm_vis_->VisualizeDataWithStamp(ros::Time(current_time), last_smm_);
-    p_smm_vis_->SendTfWithStamp(ros::Time(current_time), last_smm_);
+    p_smm_vis_->VisualizeDataWithStamp(rclcpp::Time(current_time), last_smm_);
+    p_smm_vis_->SendTfWithStamp(rclcpp::Time(current_time), last_smm_);
   }
 
   // ssc visualization
   {
     TicToc timer;
-    p_ssc_vis_->VisualizeDataWithStamp(ros::Time(current_time), planner_);
+    p_ssc_vis_->VisualizeDataWithStamp(rclcpp::Time(current_time), planner_);
     printf("[SscPlannerServer]ssc vis all time cost: %lf ms\n", timer.toc());
   }
 
@@ -70,11 +70,11 @@ void SscPlannerServer::PublishData() {
           ctrl_state_hist_.push_back(state);
           if (ctrl_state_hist_.size() > 100)
             ctrl_state_hist_.erase(ctrl_state_hist_.begin());
-          vehicle_msgs::ControlSignal ctrl_msg;
+          vehicle_msgs::msg::ControlSignal ctrl_msg;
           vehicle_msgs::Encoder::GetRosControlSignalFromControlSignal(
-              common::VehicleControlSignal(state), ros::Time(ct),
+              common::VehicleControlSignal(state), rclcpp::Time(ct),
               std::string("map"), &ctrl_msg);
-          ctrl_signal_pub_.publish(ctrl_msg);
+          ctrl_signal_pub_->publish(ctrl_msg);
         } else {
           printf(
               "[SscPlannerServer]cannot evaluate state at %lf with begin "
@@ -88,12 +88,12 @@ void SscPlannerServer::PublishData() {
     {
       auto color = common::cmap["magenta"];
       if (require_intervention_signal_) color = common::cmap["yellow"];
-      visualization_msgs::MarkerArray traj_mk_arr;
+      visualization_msgs::msg::MarkerArray traj_mk_arr;
       common::VisualizationUtil::GetMarkerArrayByTrajectory(
           *executing_traj_, 0.1, Vecf<3>(0.3, 0.3, 0.3), color, 0.5,
           &traj_mk_arr);
       if (require_intervention_signal_) {
-        visualization_msgs::Marker traj_status;
+        visualization_msgs::msg::Marker traj_status;
         common::State state_begin;
         executing_traj_->GetState(executing_traj_->begin(), &state_begin);
         Vec3f pos = Vec3f(state_begin.vec_position[0],
@@ -105,10 +105,10 @@ void SscPlannerServer::PublishData() {
       }
       int num_traj_mks = static_cast<int>(traj_mk_arr.markers.size());
       common::VisualizationUtil::FillHeaderIdInMarkerArray(
-          ros::Time(current_time), std::string("map"), last_trajmk_cnt_,
+          rclcpp::Time(current_time), std::string("map"), last_trajmk_cnt_,
           &traj_mk_arr);
       last_trajmk_cnt_ = num_traj_mks;
-      executing_traj_vis_pub_.publish(traj_mk_arr);
+      executing_traj_vis_pub_->publish(traj_mk_arr);
     }
   }
 }
@@ -143,13 +143,16 @@ void SscPlannerServer::Init(const std::string& config_path) {
   std::string traj_topic = std::string("/vis/agent_") +
                            std::to_string(ego_id_) +
                            std::string("/ssc/exec_traj");
-  nh_.param("use_sim_state", use_sim_state_, true);
+  nh_->declare_parameter<bool>("use_sim_state", true);
+  nh_->get_parameter("use_sim_state", use_sim_state_);
 
-  ctrl_signal_pub_ = nh_.advertise<vehicle_msgs::ControlSignal>("ctrl", 20);
+  ctrl_signal_pub_ =
+      nh_->create_publisher<vehicle_msgs::msg::ControlSignal>("ctrl", 20);
   map_marker_pub_ =
-      nh_.advertise<visualization_msgs::MarkerArray>("ssc_map", 1);
+      nh_->create_publisher<visualization_msgs::msg::MarkerArray>("ssc_map", 1);
   executing_traj_vis_pub_ =
-      nh_.advertise<visualization_msgs::MarkerArray>(traj_topic, 1);
+      nh_->create_publisher<visualization_msgs::msg::MarkerArray>(traj_topic,
+                                                                  1);
 }
 
 void SscPlannerServer::Start() {
@@ -195,7 +198,7 @@ void SscPlannerServer::PlanCycleCallback() {
 
   PublishData();
 
-  auto current_time = ros::Time::now().toSec();
+  auto current_time = rclcpp::Clock().now().seconds();
   printf("[SscPlannerServer]>>>>>>>current time %lf.\n", current_time);
   if (executing_traj_ == nullptr || !executing_traj_->IsValid() ||
       !use_sim_state_) {
@@ -249,7 +252,7 @@ void SscPlannerServer::Replan() {
 
   decimal_t plan_horizon = 1.0 / work_rate_;
   common::State desired_state;
-  decimal_t cur_time = ros::Time::now().toSec();
+  decimal_t cur_time = rclcpp::Clock().now().seconds();
 
   int num_cycles_exec = std::floor(
       (executing_traj_->begin() - global_init_stamp_) / plan_horizon);

@@ -1,6 +1,6 @@
 #ifndef _CORE_BEHAVIOR_PLANNER_INC_BEHAVIOR_SERVER_ROS_H__
 #define _CORE_BEHAVIOR_PLANNER_INC_BEHAVIOR_SERVER_ROS_H__
-#include "ros/ros.h"
+#include "rclcpp/rclcpp.hpp"
 
 #include <chrono>
 #include <functional>
@@ -17,12 +17,18 @@
 #include "moodycamel/atomicops.h"
 #include "moodycamel/readerwriterqueue.h"
 
-#include <sensor_msgs/Joy.h>
-#include "tf/tf.h"
-#include "tf/transform_datatypes.h"
+#include <sensor_msgs/msg/joy.hpp>
+#include <tf2/LinearMath/Quaternion.h>
+#include <tf2/LinearMath/Matrix3x3.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
+#include <tf2/LinearMath/Transform.h>
+#include <tf2/LinearMath/Quaternion.h>
+#include <tf2/LinearMath/Matrix3x3.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 #include "vehicle_msgs/encoder.h"
-#include "visualization_msgs/Marker.h"
-#include "visualization_msgs/MarkerArray.h"
+#include <visualization_msgs/msg/marker.hpp>
+#include <visualization_msgs/msg/marker_array.hpp>
+#include "visualization_msgs/msg/marker_array.h"
 
 namespace planning {
 class BehaviorPlannerServer {
@@ -33,9 +39,9 @@ class BehaviorPlannerServer {
     int kInputBufferSize{100};
   };
 
-  BehaviorPlannerServer(ros::NodeHandle nh, int ego_id);
+  BehaviorPlannerServer(rclcpp::Node::SharedPtr nh, int ego_id);
 
-  BehaviorPlannerServer(ros::NodeHandle nh, double work_rate, int ego_id);
+  BehaviorPlannerServer(rclcpp::Node::SharedPtr nh, double work_rate, int ego_id);
 
   void PushSemanticMap(const SemanticMapManager &smm);
 
@@ -67,7 +73,7 @@ class BehaviorPlannerServer {
  private:
   void PlanCycleCallback();
 
-  void JoyCallback(const sensor_msgs::Joy::ConstPtr &msg);
+  void JoyCallback(const sensor_msgs::msg::Joy::SharedPtr msg);
 
   void Replan();
 
@@ -85,8 +91,8 @@ class BehaviorPlannerServer {
   decimal_t global_init_stamp_{0.0};
 
   // ros related
-  ros::NodeHandle nh_;
-  ros::Subscriber joy_sub_;
+  rclcpp::Node::SharedPtr nh_;
+  rclcpp::Subscription<sensor_msgs::msg::Joy>::SharedPtr joy_sub_;
 
   double work_rate_;
   int ego_id_;

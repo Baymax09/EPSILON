@@ -2,14 +2,27 @@
 #define _CORE_SEMANTIC_MAP_INC_SEMANTIC_MAP_MANAGER_VISUALIZER_H_
 
 #include <assert.h>
-#include <ros/ros.h>
-#include <tf/tf.h>
-#include <tf/transform_broadcaster.h>
+#include "rclcpp/rclcpp.hpp"
+#include <tf2/LinearMath/Quaternion.h>
+#include <tf2/LinearMath/Matrix3x3.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
+#include <tf2_ros/transform_broadcaster.h>
+/**
+ * @brief Visualizer类的构造函数
+ * @param nh ROS节点共享指针，用于初始化发布器
+ */
+#include <geometry_msgs/msg/transform_stamped.hpp>
+  // 创建并初始化车辆集可视化标记数组发布器
+  // 发布到"vis/vehicle_set_vis"话题，队列长度为10
 
 #include <iostream>
 #include <vector>
+  // 创建并初始化车道网络可视化标记数组发布器
+  // 发布到"vis/lane_net_vis"话题，队列长度为10
 
 #include "common/basics/basics.h"
+  // 创建并初始化障碍物集可视化标记数组发布器
+  // 发布到"vis/obstacle_set_vis"话题，队列长度为10
 #include "common/basics/semantics.h"
 #include "common/state/state.h"
 #include "common/visualization/common_visualization_util.h"
@@ -21,42 +34,42 @@ class Visualizer {
  public:
   using ObstacleMapType = uint8_t;
 
-  Visualizer(ros::NodeHandle nh, int node_id);
+  Visualizer(rclcpp::Node::SharedPtr nh, int node_id);
   ~Visualizer() {}
 
   void VisualizeData(const SemanticMapManager &smm);
-  void VisualizeDataWithStamp(const ros::Time &stamp,
+  void VisualizeDataWithStamp(const rclcpp::Time &stamp,
                               const SemanticMapManager &smm);
   void VisualizeDataWithStampForPlayback(
-      const ros::Time &stamp, const SemanticMapManager &smm,
+      const rclcpp::Time &stamp, const SemanticMapManager &smm,
       const std::vector<int> &deleted_lane_ids);
-  void SendTfWithStamp(const ros::Time &stamp, const SemanticMapManager &smm);
+  void SendTfWithStamp(const rclcpp::Time &stamp, const SemanticMapManager &smm);
 
  private:
-  void VisualizeEgoVehicle(const ros::Time &stamp,
+  void VisualizeEgoVehicle(const rclcpp::Time &stamp,
                            const common::Vehicle &vehicle);
-  void VisualizeSurroundingLaneNet(const ros::Time &stamp,
+  void VisualizeSurroundingLaneNet(const rclcpp::Time &stamp,
                                    const common::LaneNet &lane_net,
                                    const std::vector<int> &deleted_lane_ids);
-  void VisualizeBehavior(const ros::Time &stamp,
+  void VisualizeBehavior(const rclcpp::Time &stamp,
                          const common::SemanticBehavior &behavior);
-  void VisualizeSurroundingVehicles(const ros::Time &stamp,
+  void VisualizeSurroundingVehicles(const rclcpp::Time &stamp,
                                     const common::VehicleSet &vehicle_set,
                                     const std::vector<int> &nearby_ids);
   void VisualizeLocalLanes(
-      const ros::Time &stamp,
+      const rclcpp::Time &stamp,
       const std::unordered_map<int, common::Lane> &local_lanes,
       const SemanticMapManager &smm,
       const std::vector<int> &deleted_lane_ids);
   void VisualizeObstacleMap(
-      const ros::Time &stamp,
+      const rclcpp::Time &stamp,
       const common::GridMapND<ObstacleMapType, 2> &obstacle_map);
   void VisualizeIntentionPrediction(
-      const ros::Time &stamp, const common::SemanticVehicleSet &s_vehicle_set);
+      const rclcpp::Time &stamp, const common::SemanticVehicleSet &s_vehicle_set);
   void VisualizeOpenloopTrajPrediction(
-      const ros::Time &stamp,
+      const rclcpp::Time &stamp,
       const std::unordered_map<int, vec_E<common::State>> &openloop_pred_trajs);
-  void VisualizeSpeedLimit(const ros::Time &stamp,
+  void VisualizeSpeedLimit(const rclcpp::Time &stamp,
                            const vec_E<common::SpeedLimit> &speed_limits);
 
   int last_traj_list_marker_cnt_ = 0;
@@ -68,19 +81,27 @@ class Visualizer {
 
   std::string ego_tf_name_;
 
-  ros::NodeHandle nh_;
+  rclcpp::Node::SharedPtr nh_;
   int node_id_;
 
-  ros::Publisher ego_vehicle_pub_;
-  ros::Publisher obstacle_map_pub_;
-  ros::Publisher surrounding_lane_net_pub_;
-  ros::Publisher local_lanes_pub_;
-  ros::Publisher behavior_vis_pub_;
-  ros::Publisher pred_traj_openloop_vis_pub_;
-  ros::Publisher pred_intention_vis_pub_;
-  ros::Publisher surrounding_vehicle_vis_pub_;
-  ros::Publisher speed_limit_vis_pub_;
-  tf::TransformBroadcaster ego_to_map_tf_;
+  rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr
+      ego_vehicle_pub_;
+  rclcpp::Publisher<nav_msgs::msg::OccupancyGrid>::SharedPtr obstacle_map_pub_;
+  rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr
+      surrounding_lane_net_pub_;
+  rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr
+      local_lanes_pub_;
+  rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr
+      behavior_vis_pub_;
+  rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr
+      pred_traj_openloop_vis_pub_;
+  rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr
+      pred_intention_vis_pub_;
+  rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr
+      surrounding_vehicle_vis_pub_;
+  rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr
+      speed_limit_vis_pub_;
+  std::shared_ptr<tf2_ros::TransformBroadcaster> ego_to_map_tf_;
   decimal_t marker_lifetime_{0.05};
 };  // Visualizer
 

@@ -1,6 +1,6 @@
 #ifndef _CORE_EUDM_PLANNER_INC_EUDM_SERVER_ROS_H__
 #define _CORE_EUDM_PLANNER_INC_EUDM_SERVER_ROS_H__
-#include <sensor_msgs/Joy.h>
+#include <sensor_msgs/msg/joy.hpp>
 
 #include <chrono>
 #include <functional>
@@ -17,13 +17,19 @@
 #include "eudm_planner/visualizer.h"
 #include "moodycamel/atomicops.h"
 #include "moodycamel/readerwriterqueue.h"
-#include "ros/ros.h"
+#include "rclcpp/rclcpp.hpp"
 #include "semantic_map_manager/semantic_map_manager.h"
-#include "tf/tf.h"
-#include "tf/transform_datatypes.h"
+#include <tf2/LinearMath/Quaternion.h>
+#include <tf2/LinearMath/Matrix3x3.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
+#include <tf2/LinearMath/Transform.h>
+#include <tf2/LinearMath/Quaternion.h>
+#include <tf2/LinearMath/Matrix3x3.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 #include "vehicle_msgs/encoder.h"
-#include "visualization_msgs/Marker.h"
-#include "visualization_msgs/MarkerArray.h"
+#include <visualization_msgs/msg/marker.hpp>
+#include <visualization_msgs/msg/marker_array.hpp>
+#include "visualization_msgs/msg/marker_array.h"
 
 namespace planning {
 class EudmPlannerServer {
@@ -37,9 +43,9 @@ class EudmPlannerServer {
     int kInputBufferSize{100};
   };
 
-  EudmPlannerServer(ros::NodeHandle nh, int ego_id);
+  EudmPlannerServer(rclcpp::Node::SharedPtr nh, int ego_id);
 
-  EudmPlannerServer(ros::NodeHandle nh, double work_rate, int ego_id);
+  EudmPlannerServer(rclcpp::Node::SharedPtr nh, double work_rate, int ego_id);
 
   void PushSemanticMap(const SemanticMapManager &smm);
 
@@ -59,7 +65,7 @@ class EudmPlannerServer {
  private:
   void PlanCycleCallback();
 
-  void JoyCallback(const sensor_msgs::Joy::ConstPtr &msg);
+  void JoyCallback(const sensor_msgs::msg::Joy::SharedPtr msg);
 
   void Replan();
 
@@ -81,8 +87,8 @@ class EudmPlannerServer {
   planning::eudm::Task task_;
   bool use_sim_state_ = true;
   // ros related
-  ros::NodeHandle nh_;
-  ros::Subscriber joy_sub_;
+  rclcpp::Node::SharedPtr nh_;
+  rclcpp::Subscription<sensor_msgs::msg::Joy>::SharedPtr joy_sub_;
 
   double work_rate_{20.0};
   int ego_id_;
